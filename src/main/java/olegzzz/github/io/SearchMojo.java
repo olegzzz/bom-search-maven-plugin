@@ -2,14 +2,14 @@ package olegzzz.github.io;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Dependency;
-import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -19,7 +19,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,80 +31,57 @@ import org.slf4j.LoggerFactory;
 public class SearchMojo extends AbstractMojo {
 
   public static final String ATTR_TITLE = "title";
-  private static final Logger LOGGER = LoggerFactory.getLogger(SearchMojo.class);
   public static final String PACKAGING_TYPE_POM = "pom";
   public static final String SCOPE_IMPORT = "import";
+  public static final String MAVEN_CENTRAL_URL = "https://repo.maven.apache.org/maven2";
 
-  /**
-   * Main project.
-   */
+  private static final Logger LOGGER = LoggerFactory.getLogger(SearchMojo.class);
+  public static final String ATTR_HREF = "href";
+  public static final String TAG_A = "a";
+
+  @SuppressWarnings("unused")
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   private MavenProject project;
+  @Parameter(defaultValue = "2")
+  private int minRepeatGroups;
 
-  /**
-   * Does something
-   *
-   * @throws MojoExecutionException
-   * @throws MojoFailureException
-   */
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
-    Set<Dependency> deps = getDependencies();
-    Map<Dependency, List<String>> probablyBOMs = getProbablyBOMs(deps);
-    probablyBOMs.forEach((dep, list) -> LOGGER
-        .info("Found following BOMs that might suite '{}:{}:{}': {}", dep.getGroupId(),
-            dep.getArtifactId(), dep.getVersion(), list));
+    Set<String> bomGroups = getProjectBoms(project);
+    Collection<Dependency> dependencies = filterDependencies(project.getDependencies(), bomGroups);
+    Collection<Dependency> dedupDependency = dedupDependencies(dependencies, minRepeatGroups);
+    Map<String, List<String>> boms = searchForBoms(dedupDependency);
+    boms.forEach((groupId, bomList) -> LOGGER
+        .info("Found following BOMs for groupId '{}': {}", groupId, bomList));
   }
 
-
-  //todo: remove
-  public void foo() {
-    //https://repo.maven.apache.org/maven2
-    try {
-      String repoUrl = "https://repo.maven.apache.org/maven2";
-      String groupId = "io.dropwizard";
-      String version = "1.3.5";
-      String url = repoUrl + "/" + artifactCoordinates(groupId);
-      LOGGER.info("URL {}", url);
-      Document doc = Jsoup.connect(url).get();
-      Elements aTags = doc.select("a");
-      if (aTags.size() > 0) {
-        List<String> probablyBoms = aTags.stream()
-            .filter(e -> e.attr("title").contains("-bom"))
-            .map(e -> String
-                .format("%s:%s:%s", groupId, e.attr("href").replaceAll("/", ""), version))
-            .collect(Collectors.toList());
-        LOGGER.info("Probably BOMs for {} {}", "io.dropwizard", probablyBoms);
-      }
-
-    } catch (IOException e) {
-      LOGGER.error("Jsoup error ", e);
-    }
-
+  private Collection<Dependency> dedupDependencies(Collection<Dependency> deps,
+                                                   int minRepeatGroups) {
+    return deps
+        .stream()
+        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+        .entrySet()
+        .stream()
+        .filter(e -> e.getValue() >= minRepeatGroups)
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toList());
   }
 
-  private String artifactCoordinates(String groupId) {
+  private String groupIdToUri(String groupId) {
     return groupId.replaceAll("\\.", "/");
   }
 
-  private Map<Dependency, List<String>> getProbablyBOMs(Collection<Dependency> deps) {
-    String repoUrl = "https://repo.maven.apache.org/maven2";
+  private Map<String, List<String>> searchForBoms(Collection<Dependency> deps) {
+    // group -> [group:artifact:version]
+    Map<String, List<String>> res = new HashMap<>();
 
-    Map<Dependency, List<String>> res = new HashMap<>();
     for (Dependency dep : deps) {
-      String uri = repoUrl + "/" + artifactCoordinates(dep.getGroupId());
+      String uri = buildGroupUri(dep);
       try {
-        Document doc = Jsoup.connect(uri).get();
-        Elements aTags = doc.select("a");
-        if (aTags.size() > 0) {
-          List<String> probablyBOMs = aTags.stream()
-              .filter(e -> e.attr(ATTR_TITLE).contains("-bom"))
-              .map(e -> e.attr("href").replaceAll("/", ""))
-              .map(e -> String.format("%s:%s:%s", dep.getGroupId(), e, dep.getVersion()))
-              .collect(Collectors.toList());
-          if (probablyBOMs.size() > 0) {
-            res.put(dep, probablyBOMs);
-          }
+        Document doc = loadGroup(uri);
+        List<String> boms = selectBomReferences(doc, dep);
+        if (!boms.isEmpty()) {
+          res.put(dep.getGroupId(), boms);
         }
       } catch (IOException e) {
         LOGGER.error("Jsoup error ", e);
@@ -114,18 +90,49 @@ public class SearchMojo extends AbstractMojo {
     return res;
   }
 
-  private Set<Dependency> getDependencies() {
-    Set<String> existingBOMs = Optional.ofNullable(project.getDependencyManagement())
-        .orElse(new DependencyManagement())
-        .getDependencies()
-        .stream()
-        .filter(d -> PACKAGING_TYPE_POM.equals(d.getType()))
-        .filter(d -> SCOPE_IMPORT.equals(d.getScope()))
-        .map(Dependency::getGroupId).collect(Collectors.toSet());
+  private Document loadGroup(String uri) throws IOException {
+    return Jsoup.connect(uri).get();
+  }
 
-    return project.getDependencies().stream()
-        .filter(d -> !existingBOMs.contains(d.getGroupId()))
-        .collect(Collectors.toSet());
+  private List<String> selectBomReferences(Document doc, Dependency dep) {
+    return doc
+        .select(TAG_A)
+        .stream()
+        .filter(el -> el.attr(ATTR_TITLE).contains("-bom"))
+        .map(el -> el.attr(ATTR_HREF))
+        .map(href -> href.replaceAll("/", ""))
+        .map(href -> String.format("%s:%s:%s", dep.getGroupId(), href, dep.getVersion()))
+        .collect(Collectors.toList());
+  }
+
+
+  private String buildGroupUri(Dependency dep) {
+    return MAVEN_CENTRAL_URL + "/" + groupIdToUri(dep.getGroupId());
+  }
+
+  private Collection<Dependency> filterDependencies(List<Dependency> dependencies,
+                                                    Set<String> excludeGroups) {
+    return dependencies
+        .stream()
+        .filter(d -> !excludeGroups.contains(d.getGroupId()))
+        .collect(Collectors.toList());
+  }
+
+  private Set<String> getProjectBoms(MavenProject project) {
+    Set<String> existingBOMs;
+
+    if (project.getDependencyManagement() != null) {
+      existingBOMs = project.getDependencies()
+          .stream()
+          .filter(d -> PACKAGING_TYPE_POM.equals(d.getType()))
+          .filter(d -> SCOPE_IMPORT.equals(d.getScope()))
+          .map(Dependency::getGroupId)
+          .collect(Collectors.toSet());
+    } else {
+      existingBOMs = Collections.emptySet();
+    }
+
+    return existingBOMs;
   }
 
 }
