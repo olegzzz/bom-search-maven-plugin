@@ -1,20 +1,19 @@
 package olegzzz.github.io;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -22,6 +21,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.CollectionUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -31,19 +31,19 @@ import org.slf4j.LoggerFactory;
 //todo: handle maven settings / passwords and repos urls
 
 /**
- * Search mojo.
+ * Mojo searches mave repo for available BOM artifacts for project dependencies.
  */
 @Mojo(name = "search", defaultPhase = LifecyclePhase.PROCESS_SOURCES)
 public class SearchMojo extends AbstractMojo {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(SearchMojo.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger("bom-search-maven-plugin");
 
   public static final String ATTR_TITLE = "title";
   public static final String ATTR_HREF = "href";
   public static final String TAG_A = "a";
 
-  public static final Predicate<Element> TITLE_BOM = el -> el.attr(ATTR_TITLE).contains("-bom");
-
+  public static final Predicate<Element> TITLE_BOM =
+      el -> el.attr(ATTR_TITLE).contains("-bom");
   public static final Predicate<Dependency> PACKAGING_POM =
       d -> "pom".equals(d.getType());
   public static final Predicate<Dependency> SCOPE_IMPORT =
@@ -61,13 +61,25 @@ public class SearchMojo extends AbstractMojo {
   @Parameter(property = "minOccurrence", defaultValue = "2")
   private int minOccurrence;
 
+  @SuppressWarnings("unused")
+  @Parameter(property = "mavenRepoUrl", defaultValue = MAVEN_CENTRAL_URL)
+  private String mavenRepoUrl;
+
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
     Set<String> bomGroupIds = getProjectBoms(project);
-    Collection<String> depGroupIds = filterDependencies(project.getDependencies(), bomGroupIds);
-    Collection<String> dedupGroupIds = dedupDependencies(depGroupIds, minOccurrence);
+    Collection<String> depGroupIds = selectDepsWithoutBoms(project.getDependencies(), bomGroupIds);
+    Collection<String> dedupGroupIds = dedupDeps(depGroupIds, minOccurrence);
     Map<String, List<String>> boms = searchForBoms(dedupGroupIds);
-    LOGGER.info("Following BOMs can be used {}", flatten(boms));
+    printResults(boms);
+  }
+
+  private void printResults(Map<String, List<String>> boms) {
+    if (boms.isEmpty()) {
+      LOGGER.info("No suitable BOMs found.");
+    } else {
+      LOGGER.info("Following BOMs can be used {}", flatten(boms));
+    }
   }
 
   private List<String> flatten(Map<String, List<String>> boms) {
@@ -82,13 +94,11 @@ public class SearchMojo extends AbstractMojo {
         .collect(toList());
   }
 
-  private Collection<String> dedupDependencies(Collection<String> groupIds, int minOccurrence) {
-    return groupIds
-        .stream()
-        .collect(groupingBy(identity(), toList()))
+  private Collection<String> dedupDeps(Collection<String> groupIds, int minOccurrence) {
+    return CollectionUtils.getCardinalityMap(groupIds)
         .entrySet()
         .stream()
-        .filter(e -> e.getValue().size() >= minOccurrence)
+        .filter(e -> e.getValue() >= minOccurrence)
         .map(Map.Entry::getKey)
         .collect(toList());
   }
@@ -102,24 +112,25 @@ public class SearchMojo extends AbstractMojo {
 
     for (String group : depGroups) {
       String uri = groupUri(group);
-      try {
-        Document doc = loadGroup(uri);
-        List<String> boms = findBomArtifactIds(doc, group);
-        if (!boms.isEmpty()) {
-          res.put(group, boms);
-        }
-      } catch (IOException e) {
-        LOGGER.error("Unable to fetch from central ", e);
+      Document doc = loadGroup(uri);
+      List<String> boms = findBomArtifactIds(doc);
+      if (!boms.isEmpty()) {
+        res.put(group, boms);
       }
     }
     return res;
   }
 
-  private Document loadGroup(String uri) throws IOException {
-    return Jsoup.connect(uri).get();
+  private Document loadGroup(String uri) {
+    try {
+      return Jsoup.connect(uri).get();
+    } catch (IOException e) {
+      LOGGER.error("Unable to fetch uri '{}'", uri);
+      throw new RuntimeException(e);
+    }
   }
 
-  private List<String> findBomArtifactIds(Document doc, String groupId) {
+  private List<String> findBomArtifactIds(Document doc) {
     return doc
         .select(TAG_A)
         .stream()
@@ -130,33 +141,28 @@ public class SearchMojo extends AbstractMojo {
   }
 
   private String groupUri(String group) {
-    return MAVEN_CENTRAL_URL + "/" + groupIdToUri(group);
+    return String.format("%s/%s", mavenRepoUrl, groupIdToUri(group));
   }
 
-  private List<String> filterDependencies(List<Dependency> dependencies,
-                                          Set<String> excludeGroups) {
-    return dependencies
+  private List<String> selectDepsWithoutBoms(List<Dependency> deps, Set<String> excludes) {
+    return deps
         .stream()
+        .filter(PACKAGING_POM.negate())
+        .filter(SCOPE_IMPORT.negate())
         .map(Dependency::getGroupId)
-        .filter(groupId -> !excludeGroups.contains(groupId))
+        .filter(groupId -> !excludes.contains(groupId))
         .collect(toList());
   }
 
   private Set<String> getProjectBoms(MavenProject project) {
-    Set<String> existingBOMs;
-
-    if (project.getDependencyManagement() != null) {
-      existingBOMs = project.getDependencies()
-          .stream()
-          .filter(PACKAGING_POM)
-          .filter(SCOPE_IMPORT)
-          .map(Dependency::getGroupId)
-          .collect(Collectors.toSet());
-    } else {
-      existingBOMs = Collections.emptySet();
-    }
-
-    return existingBOMs;
+    return Optional.ofNullable(project.getDependencyManagement())
+        .orElse(new DependencyManagement())
+        .getDependencies()
+        .stream()
+        .filter(PACKAGING_POM)
+        .filter(SCOPE_IMPORT)
+        .map(Dependency::getGroupId)
+        .collect(Collectors.toSet());
   }
 
 }
