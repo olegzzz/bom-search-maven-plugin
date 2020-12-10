@@ -54,7 +54,7 @@ public class SearchMojo extends AbstractMojo {
   public static final Function<Integer, Predicate<Map.Entry<?, Integer>>> MIN_COUNT_PREDICATE =
       min -> e -> e.getValue() >= min;
 
-  public static final String MAVEN_CENTRAL_URL = "https://repo.maven.apache.org/maven2";
+  public static final String MAVEN_CENTRAL = "https://repo.maven.apache.org/maven2";
 
   @SuppressWarnings("unused")
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
@@ -65,14 +65,14 @@ public class SearchMojo extends AbstractMojo {
   private int minOccurrence;
 
   @SuppressWarnings("unused")
-  @Parameter(property = "mavenRepoUrl", defaultValue = MAVEN_CENTRAL_URL)
+  @Parameter(property = "mavenRepoUrl", defaultValue = MAVEN_CENTRAL)
   private String mavenRepoUrl;
 
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
     Set<String> bomGroupIds = getProjectBoms(project);
     Collection<String> depGroupIds = selectDependencies(project.getDependencies(), bomGroupIds);
-    Collection<String> dedupGroupIds = filterDeps(depGroupIds, minOccurrence);
+    Collection<String> dedupGroupIds = filterDependencies(depGroupIds, minOccurrence);
     Map<String, List<String>> boms = searchForBoms(dedupGroupIds);
     printResults(boms);
   }
@@ -97,7 +97,8 @@ public class SearchMojo extends AbstractMojo {
         .collect(toList());
   }
 
-  private Collection<String> filterDeps(Collection<String> groupIds, int minOccurrence) {
+  @VisibleForTesting
+  Collection<String> filterDependencies(Collection<String> groupIds, int minOccurrence) {
     return CollectionUtils
         .getCardinalityMap(groupIds)
         .entrySet()
@@ -111,7 +112,8 @@ public class SearchMojo extends AbstractMojo {
     return groupId.replaceAll("\\.", "/");
   }
 
-  private Map<String, List<String>> searchForBoms(Collection<String> depGroups) {
+  @VisibleForTesting
+  Map<String, List<String>> searchForBoms(Collection<String> depGroups) {
     Map<String, List<String>> res = new HashMap<>();
 
     for (String group : depGroups) {
@@ -125,7 +127,7 @@ public class SearchMojo extends AbstractMojo {
     return res;
   }
 
-  private Document loadGroup(String uri) {
+  protected Document loadGroup(String uri) {
     try {
       return Jsoup.connect(uri).get();
     } catch (IOException e) {
@@ -134,7 +136,8 @@ public class SearchMojo extends AbstractMojo {
     }
   }
 
-  private List<String> parseBomArtifactIds(Document doc) {
+  @VisibleForTesting
+  List<String> parseBomArtifactIds(Document doc) {
     return doc
         .select(TAG_A)
         .stream()
@@ -144,7 +147,8 @@ public class SearchMojo extends AbstractMojo {
         .collect(toList());
   }
 
-  private String groupUri(String group) {
+  @VisibleForTesting
+  String groupUri(String group) {
     return String.format("%s/%s", mavenRepoUrl, groupIdToUri(group));
   }
 
