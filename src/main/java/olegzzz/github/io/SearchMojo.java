@@ -81,7 +81,7 @@ public class SearchMojo extends AbstractMojo {
     if (boms.isEmpty()) {
       LOGGER.info("No suitable BOMs found.");
     } else {
-      LOGGER.info("Following BOMs can be used: {}", flatten(boms));
+      LOGGER.info("Following BOMs found for module: {}", flatten(boms));
     }
   }
 
