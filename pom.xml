@@ -180,7 +180,7 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.1.1</version>
                 <configuration>
-                    <configLocation>google_checks.xml</configLocation>
+                    <configLocation>goog le_checks.xml</configLocation>
                     <encoding>UTF-8</encoding>
                     <consoleOutput>true</consoleOutput>
                     <violationSeverity>warning</violationSeverity>
