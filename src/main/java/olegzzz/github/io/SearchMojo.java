@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 //todo: handle maven settings / passwords and repos urls
 
 /**
- * Mojo searches mave repo for available BOM artifacts for project dependencies.
+ * Mojo searches maven repo for available BOM artifacts for project dependencies.
  */
 @Mojo(name = "search", defaultPhase = LifecyclePhase.PROCESS_SOURCES)
 public class SearchMojo extends AbstractMojo {
