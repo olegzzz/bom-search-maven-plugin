@@ -1,10 +1,10 @@
-package olegzzz.github.io;
+package com.github.olegzzz.maven.plugin.bomsearch;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static olegzzz.github.io.SearchMojo.GET_HREF;
-import static olegzzz.github.io.SearchMojo.TITLE_BOM;
+import static com.github.olegzzz.maven.plugin.bomsearch.SearchMojo.GET_HREF;
+import static com.github.olegzzz.maven.plugin.bomsearch.SearchMojo.TITLE_BOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

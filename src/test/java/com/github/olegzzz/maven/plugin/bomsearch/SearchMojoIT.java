@@ -1,4 +1,4 @@
-package olegzzz.github.io;
+package com.github.olegzzz.maven.plugin.bomsearch;
 
 
 import static org.junit.Assert.assertEquals;
