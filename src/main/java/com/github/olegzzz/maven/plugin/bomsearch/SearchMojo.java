@@ -1,4 +1,4 @@
-package olegzzz.github.io;
+package com.github.olegzzz.maven.plugin.bomsearch;
 
 import static java.util.stream.Collectors.toList;
 
@@ -16,8 +16,6 @@ import java.util.stream.Collectors;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -39,22 +37,22 @@ public class SearchMojo extends AbstractMojo {
 
   private static final Logger LOGGER = LoggerFactory.getLogger("bom-search-maven-plugin");
 
-  public static final String TAG_A = "a";
+  static final String TAG_A = "a";
 
-  public static final Predicate<Element> TITLE_BOM =
+  static final Predicate<Element> TITLE_BOM =
       el -> el.attr("title").contains("-bom");
-  public static final Predicate<Dependency> PACKAGING_POM =
+  static final Predicate<Dependency> PACKAGING_POM =
       d -> "pom".equals(d.getType());
-  public static final Predicate<Dependency> SCOPE_IMPORT =
+  static final Predicate<Dependency> SCOPE_IMPORT =
       d -> "import".equals(d.getScope());
-  public static final Function<String, String> REMOVE_SLASH =
+  static final Function<String, String> REMOVE_SLASH =
       s -> s.replaceAll("/", "");
-  public static final Function<Element, String> GET_HREF =
+  static final Function<Element, String> GET_HREF =
       el -> el.attr("href");
-  public static final Function<Integer, Predicate<Map.Entry<?, Integer>>> MIN_COUNT_PREDICATE =
+  static final Function<Integer, Predicate<Map.Entry<?, Integer>>> MIN_COUNT_PREDICATE =
       min -> e -> e.getValue() >= min;
 
-  public static final String MAVEN_CENTRAL = "https://repo.maven.apache.org/maven2";
+  static final String MAVEN_CENTRAL = "https://repo.maven.apache.org/maven2";
 
   @SuppressWarnings("unused")
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
@@ -69,7 +67,7 @@ public class SearchMojo extends AbstractMojo {
   private String mavenRepoUrl;
 
   @Override
-  public void execute() throws MojoExecutionException, MojoFailureException {
+  public void execute() {
     Set<String> bomGroupIds = getProjectBoms(project);
     Collection<String> depGroupIds = selectDependencies(project.getDependencies(), bomGroupIds);
     Collection<String> dedupGroupIds = filterDependencies(depGroupIds, minOccurrence);
@@ -127,7 +125,7 @@ public class SearchMojo extends AbstractMojo {
     return res;
   }
 
-  protected Document loadGroup(String uri) {
+  Document loadGroup(String uri) {
     try {
       return Jsoup.connect(uri).get();
     } catch (IOException e) {
