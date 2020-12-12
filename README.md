@@ -38,3 +38,4 @@ then looking into the log one can decide whether to use suggested Bom dependenci
 [INFO] --- bom-search-maven-plugin:<version>:search (default-cli) @ <module> ---
 [INFO] Following BOMs found for module: [io.dropwizard:dropwizard-bom]
 ```
+
