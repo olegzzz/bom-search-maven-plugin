@@ -1,5 +1,8 @@
 # BOM search plugin
 
+[![Master Status](https://github.com/olegzzz/bom-search-maven-plugin/workflows/maven-ci/badge.svg)](https://github.com/olegzzz/bom-search-maven-plugin/actions)
+
+
 Plugin to lookup BOM dependencies in maven central by a dependency group. 
 
 ## Motivation
