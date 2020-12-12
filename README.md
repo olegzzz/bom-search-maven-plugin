@@ -7,7 +7,7 @@ Plugin to lookup BOM dependencies in maven central by a dependency group.
 
 ## Motivation
 
-Often times a project of decent size contains multiple dependencies that share same group. MOre often than not those 
+Often times a project of decent size contains multiple dependencies that share same group. More often than not those 
 dependencies managed via a common version hardcoded into project properties. Sometimes dependency management used. 
 In any case, it would greatly simplify dependency management if one single BOM file can be referenced to make sure all 
 related dependencies have specific version. 
