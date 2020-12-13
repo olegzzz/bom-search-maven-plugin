@@ -1,6 +1,7 @@
 # BOM search plugin
 
 ![Master Status](https://github.com/olegzzz/bom-search-maven-plugin/workflows/maven-ci/badge.svg)
+![CodeQL](https://github.com/olegzzz/bom-search-maven-plugin/workflows/CodeQL/badge.svg)
 
 
 Plugin to lookup BOM dependencies in maven central by a dependency group. 
