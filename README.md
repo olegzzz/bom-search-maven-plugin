@@ -1,4 +1,4 @@
-# BOM search plugin
+# BOM search maven plugin
 
 ![Master Status](https://github.com/olegzzz/bom-search-maven-plugin/workflows/maven-ci/badge.svg)
 ![CodeQL](https://github.com/olegzzz/bom-search-maven-plugin/workflows/CodeQL/badge.svg)
@@ -34,7 +34,7 @@ Typical use of the plugin would look as follows:
 ```
 $ mvn bom-search:search
 ```
-then looking into the log one can decide whether to use suggested Bom dependencies:
+let's say a project has multiple dropwizard dependencies, then looking into the log one can decide whether to use suggested Boms:
 ```
 [INFO] --- bom-search-maven-plugin:<version>:search (default-cli) @ <module> ---
 [INFO] Following BOMs found for module: [io.dropwizard:dropwizard-bom]
