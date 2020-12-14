@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.plugin.AbstractMojo;
@@ -79,7 +80,7 @@ public class SearchMojo extends AbstractMojo {
     if (boms.isEmpty()) {
       LOGGER.info("No suitable BOMs found.");
     } else {
-      LOGGER.info("Following BOMs found for module: {}", flatten(boms));
+      LOGGER.info("Following BOMs found for module: {}.", flatten(boms));
     }
   }
 
@@ -114,23 +115,28 @@ public class SearchMojo extends AbstractMojo {
   Map<String, List<String>> searchForBoms(Collection<String> depGroups) {
     Map<String, List<String>> res = new HashMap<>();
 
+    DocumentLoader loader = new JsoupDocumentLoader();
     for (String group : depGroups) {
       String uri = groupUri(group);
-      Document doc = loadGroup(uri);
-      List<String> boms = parseBomArtifactIds(doc);
-      if (!boms.isEmpty()) {
-        res.put(group, boms);
+      Document doc = loadGroup(uri, loader);
+      if (doc != null) {
+        List<String> boms = parseBomArtifactIds(doc);
+        if (!boms.isEmpty()) {
+          res.put(group, boms);
+        }
       }
     }
     return res;
   }
 
-  Document loadGroup(String uri) {
+  @VisibleForTesting
+  @Nullable
+  Document loadGroup(String uri, DocumentLoader loader) {
     try {
-      return Jsoup.connect(uri).get();
+      return loader.load(uri);
     } catch (IOException e) {
-      LOGGER.error("Unable to fetch uri '{}'", uri);
-      throw new RuntimeException(e);
+      LOGGER.warn("Unable to fetch dependencies for uri '{}' due to '{}'.", uri, e);
+      return null;
     }
   }
 
@@ -171,6 +177,18 @@ public class SearchMojo extends AbstractMojo {
         .filter(SCOPE_IMPORT)
         .map(Dependency::getGroupId)
         .collect(Collectors.toSet());
+  }
+
+  interface DocumentLoader {
+    Document load(String uri) throws IOException;
+  }
+
+  class JsoupDocumentLoader implements DocumentLoader {
+
+    @Override
+    public Document load(String uri) throws IOException {
+      return Jsoup.connect(uri).get();
+    }
   }
 
 }
