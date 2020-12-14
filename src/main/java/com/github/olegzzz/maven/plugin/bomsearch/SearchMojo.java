@@ -135,7 +135,7 @@ public class SearchMojo extends AbstractMojo {
     try {
       return loader.load(uri);
     } catch (IOException e) {
-      LOGGER.warn("Unable to fetch dependencies for uri '{}' due to '{}'.", uri, e);
+      LOGGER.warn("Unable to fetch dependencies for uri '{}' due to '{}'.", uri, String.valueOf(e));
       return null;
     }
   }
