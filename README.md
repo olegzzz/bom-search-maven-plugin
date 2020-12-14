@@ -2,6 +2,7 @@
 
 ![Master Status](https://github.com/olegzzz/bom-search-maven-plugin/workflows/maven-ci/badge.svg)
 ![CodeQL](https://github.com/olegzzz/bom-search-maven-plugin/workflows/CodeQL/badge.svg)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.olegzzz/bom-search-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.olegzzz/bom-search-maven-plugin)
 
 
 Plugin to lookup BOM dependencies in maven central by a dependency group. 
