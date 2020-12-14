@@ -1,19 +1,25 @@
 package com.github.olegzzz.maven.plugin.bomsearch;
 
+import static com.github.olegzzz.maven.plugin.bomsearch.SearchMojo.GET_HREF;
+import static com.github.olegzzz.maven.plugin.bomsearch.SearchMojo.TITLE_BOM;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static com.github.olegzzz.maven.plugin.bomsearch.SearchMojo.GET_HREF;
-import static com.github.olegzzz.maven.plugin.bomsearch.SearchMojo.TITLE_BOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +32,7 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.project.MavenProject;
+import org.jsoup.HttpStatusException;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +45,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.AdditionalAnswers;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -284,15 +290,20 @@ public class SearchMojoTest {
 
     @Test
     public void returns_boms_If_available() {
-      doAnswer(AdditionalAnswers.returnsFirstArg()).when(mojo).groupUri(anyString());
-      Document document = mock(Document.class);
-      doReturn(document).when(mojo).loadGroup(anyString());
+      doAnswer(returnsFirstArg()).when(mojo).groupUri(anyString());
+      Document group1Doc = mock(Document.class);
+      Document group2Doc = mock(Document.class);
+      doReturn(group1Doc)
+          .doReturn(group2Doc)
+          .doReturn(null) // artifact for private group not found in central repo
+          .when(mojo).loadGroup(anyString(), any(SearchMojo.DocumentLoader.class));
       List<String> bomsList = singletonList("bom");
       doReturn(emptyList())
           .doReturn(bomsList)
           .doReturn(emptyList())
-          .when(mojo).parseBomArtifactIds(eq(document));
-      Map<String, List<String>> boms = mojo.searchForBoms(asList("group1", "group2", "group3"));
+          .when(mojo).parseBomArtifactIds(any(Document.class));
+      Map<String, List<String>> boms =
+          mojo.searchForBoms(asList("group1", "group2", "privateGroup"));
       assertEquals(1, boms.size());
       assertTrue(boms.get("group2").contains("bom"));
 
@@ -300,12 +311,40 @@ public class SearchMojoTest {
 
     @Test
     public void returns_empty_list_If_no_boms_available() {
-      doAnswer(AdditionalAnswers.returnsFirstArg()).when(mojo).groupUri(anyString());
+      doAnswer(returnsFirstArg()).when(mojo).groupUri(anyString());
       Document document = mock(Document.class);
-      doReturn(document).when(mojo).loadGroup(anyString());
+      doReturn(document).when(mojo).loadGroup(anyString(), any(SearchMojo.DocumentLoader.class));
       doReturn(emptyList()).when(mojo).parseBomArtifactIds(eq(document));
       Map<String, List<String>> boms = mojo.searchForBoms(singletonList("group1"));
       assertTrue(boms.isEmpty());
+    }
+
+
+  }
+
+  @Nested
+  @ExtendWith(MockitoExtension.class)
+  public class LoadGroup {
+
+    @Spy
+    private SearchMojo mojo;
+
+    @Test
+    public void returns_null_if_unable_to_load() throws IOException {
+      SearchMojo.DocumentLoader loader = mock(SearchMojo.DocumentLoader.class);
+      String uri = "https://foobar.com";
+      when(loader.load(anyString()))
+          .thenThrow(new HttpStatusException("Expected exception. Not found", 404, uri));
+      assertNull(mojo.loadGroup(uri, loader));
+    }
+
+    @Test
+    public void returns_document_if_can_load() throws IOException {
+      SearchMojo.DocumentLoader loader = mock(SearchMojo.DocumentLoader.class);
+      String uri = "https://foobar.com";
+      Document doc = mock(Document.class);
+      when(loader.load(anyString())).thenReturn(doc);
+      assertSame(mojo.loadGroup(uri, loader), doc);
     }
 
   }
