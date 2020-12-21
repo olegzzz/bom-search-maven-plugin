@@ -38,7 +38,7 @@ $ mvn com.github.olegzzz:bom-search-maven-plugin:search
 ```
 let's say a project has multiple dropwizard dependencies, then looking into the log one can pick suggested BOM file (`io.dropwizard:dropwizard-bom` in this case):
 ```
-[INFO] --- bom-search-maven-plugin:<version>:search (default-cli) @ <module> ---
+[INFO] --- bom-search-maven-plugin:1.2:search (default-cli) ---
 [INFO] Following BOMs found for module: [io.dropwizard:dropwizard-bom]
 ```
 
