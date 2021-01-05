@@ -68,13 +68,10 @@ public class SearchMojo extends IncrementalSupportMojo {
       getLog().info("Changes detected. Searching for available BOM dependencies.");
       boms = doSearch();
     } else {
+      getLog().info("No changes detected.");
       try {
-        getLog().info("No changes detected.");
         boms = readBomList();
       } catch (IOException e) {
-        String msg = "Unable to read build status.";
-        getLog().warn(msg);
-        getLog().debug(msg, e);
         boms = doSearch();
       }
     }

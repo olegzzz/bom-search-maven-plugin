@@ -1,5 +1,7 @@
 package com.github.olegzzz.maven.plugin.bomsearch;
 
+import static java.util.Arrays.stream;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -21,6 +23,9 @@ import org.apache.maven.shared.utils.io.FileUtils;
 public class IncrementalSupportMojo extends AbstractMojo {
 
   public static final String BOM_LIST_FILENAME = "bomList.lst";
+  public static final String ARTIFACT_DELIMITER = ",";
+  public static final String GROUP_DELIMITER = ":";
+
   @SuppressWarnings("unused")
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
   protected MavenProject project;
@@ -51,8 +56,8 @@ public class IncrementalSupportMojo extends AbstractMojo {
     StringBuilder sb = new StringBuilder();
     for (Map.Entry<String, List<String>> b : boms.entrySet()) {
       sb.append(b.getKey())
-          .append(":")
-          .append(String.join(",", b.getValue()))
+          .append(GROUP_DELIMITER)
+          .append(String.join(ARTIFACT_DELIMITER, b.getValue()))
           .append(System.lineSeparator());
     }
 
@@ -68,15 +73,23 @@ public class IncrementalSupportMojo extends AbstractMojo {
 
   protected Map<String, List<String>> readBomList() throws MojoExecutionException, IOException {
     File filename = new File(incBuildHelper.getMojoStatusDirectory(), BOM_LIST_FILENAME);
-    List<String> list = FileUtils.loadFile(filename);
+    List<String> list;
+    try {
+      list = FileUtils.loadFile(filename);
+    } catch (IOException e) {
+      String msg = "Unable to read build status.";
+      getLog().warn(msg);
+      getLog().debug(msg, e);
+      throw e;
+    }
     Map<String, List<String>> res = new HashMap<>();
     for (String coordinates : list) {
-      String[] groupArtifacts = coordinates.split(":");
-      String group = groupArtifacts[0];
+      String[] groupArtifactList = coordinates.split(GROUP_DELIMITER);
+      String group = groupArtifactList[0];
       res.putIfAbsent(group, new LinkedList<>());
 
-      List<String> artifacts =
-          Arrays.stream(groupArtifacts[1].split(",")).collect(Collectors.toList());
+      List<String> artifacts = stream(groupArtifactList[1].split(ARTIFACT_DELIMITER))
+          .collect(Collectors.toList());
       res.computeIfPresent(group, (key, values) -> {
         values.addAll(artifacts);
         return values;
