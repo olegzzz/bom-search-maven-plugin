@@ -3,9 +3,7 @@ package com.github.olegzzz.maven.plugin.bomsearch;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -16,25 +14,17 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.incremental.IncrementalBuildHelper;
-import org.apache.maven.shared.utils.io.DirectoryScanner;
-import org.apache.maven.shared.utils.io.FileUtils;
 import org.codehaus.plexus.util.CollectionUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 //todo: handle maven settings / passwords and repos urls
 
@@ -42,9 +32,7 @@ import org.slf4j.LoggerFactory;
  * Mojo searches maven repo for available BOM artifacts for project dependencies.
  */
 @Mojo(name = "search", defaultPhase = LifecyclePhase.PROCESS_SOURCES)
-public class SearchMojo extends AbstractMojo {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger("bom-search-maven-plugin");
+public class SearchMojo extends IncrementalSupportMojo {
 
   static final String TAG_A = "a";
 
@@ -64,10 +52,6 @@ public class SearchMojo extends AbstractMojo {
   static final String MAVEN_CENTRAL = "https://repo.maven.apache.org/maven2";
 
   @SuppressWarnings("unused")
-  @Parameter(defaultValue = "${project}", readonly = true, required = true)
-  private MavenProject project;
-
-  @SuppressWarnings("unused")
   @Parameter(property = "minOccurrence", defaultValue = "2")
   private int minOccurrence;
 
@@ -75,78 +59,41 @@ public class SearchMojo extends AbstractMojo {
   @Parameter(property = "mavenRepoUrl", defaultValue = MAVEN_CENTRAL)
   private String mavenRepoUrl;
 
-  /**
-   * Needed for storing the status for the incremental build support.
-   */
-  @Parameter(defaultValue = "${mojoExecution}", readonly = true, required = true)
-  private MojoExecution mojoExecution;
-
-  /**
-   * The current build session instance.
-   */
-  @Parameter(defaultValue = "${session}", readonly = true, required = true)
-  private MavenSession session;
-
   @Override
   public void execute() throws MojoExecutionException {
-
-    IncrementalBuildHelper incrementalBuildHelper =
-        new IncrementalBuildHelper(mojoExecution, session);
-
-    DirectoryScanner directoryScanner = incrementalBuildHelper.getDirectoryScanner();
-    directoryScanner.setBasedir(project.getBasedir());
-    directoryScanner.setIncludes("**/pom.xml");
+    super.execute();
 
     Map<String, List<String>> boms;
-    if (incrementalBuildHelper.inputFileTreeChanged(directoryScanner)) {
-      LOGGER.info("Changes detected. Searching for available BOM dependencies.");
-      Set<String> bomGroupIds = getProjectBoms(project);
-      Collection<String> depGroupIds = selectDependencies(project.getDependencies(), bomGroupIds);
-      Collection<String> dedupGroupIds = filterDependencies(depGroupIds, minOccurrence);
-      boms = searchForBoms(dedupGroupIds);
-
-      StringBuilder sb = new StringBuilder();
-      for (Map.Entry<String, List<String>> b : boms.entrySet()) {
-        sb.append(b.getKey())
-            .append(":")
-            .append(String.join(",", b.getValue()))
-            .append(System.lineSeparator());
-      }
-
-      LOGGER.info("Bom list {}", sb.toString());
-
-      File bomFiles = new File(incrementalBuildHelper.getMojoStatusDirectory(), "bomFiles.lst");
-      try {
-        FileUtils.fileWrite(bomFiles.getAbsolutePath(), sb.toString());
-      } catch (IOException e) {
-        LOGGER.error("Unable to write incremental results", e);
-      }
-      printResults(boms);
+    if (isPomFileChanged()) {
+      getLog().info("Changes detected. Searching for available BOM dependencies.");
+      boms = doSearch();
     } else {
-      File bomFiles = new File(incrementalBuildHelper.getMojoStatusDirectory(), "bomFiles.lst");
       try {
-        List<String> list = FileUtils.loadFile(bomFiles);
-        if (list.isEmpty()) {
-          LOGGER.info("No suitable BOMs found.");
-        } else {
-          List<String> formatted = list.stream().map(s -> s.split(":")).map(groupArtifact -> Arrays
-              .stream(groupArtifact[1].split(","))
-              .map(artifact -> String.format("%s:%s", groupArtifact[0], artifact)).collect(
-                  Collectors.toList())).collect(toList()).stream().flatMap(Collection::stream)
-              .collect(toList());
-          LOGGER.info("Following BOMs found for module: {}.", list);
-        }
+        getLog().info("No changes detected.");
+        boms = readBomList();
       } catch (IOException e) {
-        LOGGER.error("Unable to load incremental build result", e);
+        String msg = "Unable to read build status.";
+        getLog().warn(msg);
+        getLog().debug(msg, e);
+        boms = doSearch();
       }
     }
+    writeBomList(boms);
+    printResults(boms);
+  }
+
+  private Map<String, List<String>> doSearch() {
+    Set<String> bomGroupIds = getProjectBoms(project);
+    Collection<String> depGroupIds = selectDependencies(project.getDependencies(), bomGroupIds);
+    Collection<String> dedupGroupIds = filterDependencies(depGroupIds, minOccurrence);
+    return searchForBoms(dedupGroupIds);
   }
 
   private void printResults(Map<String, List<String>> boms) {
     if (boms.isEmpty()) {
-      LOGGER.info("No suitable BOMs found.");
+      getLog().info("No suitable BOMs found.");
     } else {
-      LOGGER.info("Following BOMs found for module: {}.", flatten(boms));
+      getLog().info(String.format("Following BOMs found for module: %s.", flatten(boms)));
     }
   }
 
@@ -201,7 +148,8 @@ public class SearchMojo extends AbstractMojo {
     try {
       return loader.load(uri);
     } catch (IOException e) {
-      LOGGER.warn("Unable to fetch dependencies for uri '{}' due to '{}'.", uri, String.valueOf(e));
+      getLog()
+          .warn(String.format("Unable to fetch dependencies for uri '%s' due to '%s'.", uri, e));
       return null;
     }
   }
