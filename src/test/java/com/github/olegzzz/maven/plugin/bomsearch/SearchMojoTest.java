@@ -14,9 +14,11 @@ import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import java.util.Set;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.jsoup.HttpStatusException;
 import org.jsoup.nodes.Document;
@@ -45,6 +48,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -329,6 +333,14 @@ public class SearchMojoTest {
     @Spy
     private SearchMojo mojo;
 
+    @Mock
+    private Log log;
+
+    @BeforeEach
+    public void beforeEach() {
+      mojo.setLog(log);
+    }
+
     @Test
     public void returns_null_if_unable_to_load() throws IOException {
       SearchMojo.DocumentLoader loader = mock(SearchMojo.DocumentLoader.class);
@@ -336,6 +348,7 @@ public class SearchMojoTest {
       when(loader.load(anyString()))
           .thenThrow(new HttpStatusException("Expected exception. Not found", 404, uri));
       assertNull(mojo.loadGroup(uri, loader));
+      verify(log).warn(startsWith("Unable to fetch dependencies for uri 'https://foobar.com'"));
     }
 
     @Test

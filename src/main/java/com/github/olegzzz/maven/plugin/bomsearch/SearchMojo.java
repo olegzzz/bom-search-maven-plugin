@@ -64,18 +64,22 @@ public class SearchMojo extends IncrementalSupportMojo {
     super.execute();
 
     Map<String, List<String>> boms;
-    if (isPomFileChanged()) {
-      getLog().info("Changes detected. Searching for available BOM dependencies.");
-      boms = doSearch();
-    } else {
-      getLog().info("No changes detected.");
-      try {
-        boms = readBomList();
-      } catch (IOException e) {
+    if (super.useIncrementalBuild) {
+      if (isPomFileChanged()) {
+        getLog().info("Changes detected. Searching for available BOM dependencies.");
         boms = doSearch();
+      } else {
+        getLog().info("No changes detected.");
+        try {
+          boms = readBomList();
+        } catch (IOException e) {
+          boms = doSearch();
+        }
       }
+      writeBomList(boms);
+    } else {
+      boms = doSearch();
     }
-    writeBomList(boms);
     printResults(boms);
   }
 

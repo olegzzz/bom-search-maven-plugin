@@ -4,7 +4,6 @@ import static java.util.Arrays.stream;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,6 +40,9 @@ public class IncrementalSupportMojo extends AbstractMojo {
    */
   @Parameter(defaultValue = "${session}", readonly = true, required = true)
   private MavenSession session;
+
+  @Parameter(defaultValue = "true", property = "useIncrementalBuild")
+  protected boolean useIncrementalBuild = true;
 
   private IncrementalBuildHelper incBuildHelper;
 
@@ -100,6 +102,11 @@ public class IncrementalSupportMojo extends AbstractMojo {
 
   @Override
   public void execute() throws MojoExecutionException {
-    incBuildHelper = new IncrementalBuildHelper(mojoExecution, session);
+    if (useIncrementalBuild) {
+      getLog().debug("Incremental build enabled.");
+      incBuildHelper = new IncrementalBuildHelper(mojoExecution, session);
+    } else {
+      getLog().debug("Incremental build disabled.");
+    }
   }
 }
