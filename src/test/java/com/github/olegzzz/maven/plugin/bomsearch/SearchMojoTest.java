@@ -5,11 +5,11 @@ import static com.github.olegzzz.maven.plugin.bomsearch.SearchMojo.TITLE_BOM;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -38,46 +38,43 @@ import org.apache.maven.project.MavenProject;
 import org.jsoup.HttpStatusException;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.DisplayNameGenerator;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
-@DisplayName("Search mojo")
-@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@RunWith(Enclosed.class)
 public class SearchMojoTest {
 
-  @Nested
-  @DisplayName("TITLE_BOM predicate")
-  public class TitleBomPredicate {
+  public static class TitleBomPredicate {
 
     public static final String TITLE = "title";
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    public void returns_False_if_value_is_empty(String title) {
-      assertFalse(TITLE_BOM.test(elementWithTitle(title)));
+    @Test
+    public void returns_False_if_value_is_empty() {
+      assertFalse(TITLE_BOM.test(elementWithTitle("")));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"some-dependency-bom", "another-bom"})
-    public void returns_True_if_value_contains_bom(String title) {
-      assertTrue(TITLE_BOM.test(elementWithTitle(title)));
+    @Test
+    public void returns_False_if_value_is_null() {
+      assertFalse(TITLE_BOM.test(elementWithTitle(null)));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"notbom", "another-dependency"})
-    public void returns_False_if_value_contains_no_bom(String title) {
-      assertFalse(TITLE_BOM.test(elementWithTitle(title)));
+    @Test
+    public void returns_True_if_value_contains_bom() {
+      assertTrue(TITLE_BOM.test(elementWithTitle("some-dependency-bom")));
+      assertTrue(TITLE_BOM.test(elementWithTitle("another-bom")));
+    }
+
+    @Test
+    public void returns_False_if_value_contains_no_bom() {
+      assertFalse(TITLE_BOM.test(elementWithTitle("notbom")));
+      assertFalse(TITLE_BOM.test(elementWithTitle("another-dependency")));
     }
 
     private Element elementWithTitle(String title) {
@@ -87,9 +84,7 @@ public class SearchMojoTest {
     }
   }
 
-  @Nested
-  @DisplayName("PACKAGING_POM predicate")
-  public class PackagingPomPredicate {
+  public static class PackagingPomPredicate {
 
     @Test
     public void returns_True_If_value_is_pom() {
@@ -107,9 +102,7 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  @DisplayName("SCOPE_IMPORT predicate")
-  public class ScopeImportPredicate {
+  public static class ScopeImportPredicate {
 
     @Test
     public void returns_True_If_value_is_import() {
@@ -127,21 +120,22 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  @DisplayName("REMOVE_SLASH function")
-  public class RemoveSlashFunction {
+  public static class RemoveSlashFunction {
 
-    @ParameterizedTest(name = "in string \"{0}\"")
-    @ValueSource(strings = {"foobar", "foo/", "foo/bar", "/", "//", "/bar", "/foo/"})
-    public void replaces_slash(String string) {
-      assertFalse(SearchMojo.REMOVE_SLASH.apply(string).contains("/"));
+    @Test
+    public void replaces_slash() {
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("foobar").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("foo/").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("foo/bar").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("/").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("//").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("/bar").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("/foo/").contains("/"));
     }
 
   }
 
-  @Nested
-  @DisplayName("GET_HREF function")
-  public class GetHrefFunction {
+  public static class GetHrefFunction {
 
     @Test
     public void returns_value_when_attribute_present() {
@@ -159,9 +153,7 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  @DisplayName("MIN_COUNT_PREDICATE")
-  public class MinCountPredicate {
+  public static class MinCountPredicate {
 
     @Test
     public void returns_True_If_value_greater_than_or_equal_to_argument() {
@@ -188,7 +180,7 @@ public class SearchMojoTest {
 
     protected SearchMojo mojo;
 
-    @BeforeEach
+    @Before
     public void setUp() {
       mojo = new SearchMojo();
     }
@@ -203,8 +195,7 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  public class GetProjectBoms extends Base {
+  public static class GetProjectBoms extends Base {
 
     @Test
     public void returns_empty_set_If_no_DependencyManagement_section() {
@@ -233,8 +224,7 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  public class SelectDependencies extends Base {
+  public static class SelectDependencies extends Base {
 
     @Test
     public void returns_dependencies_excluding_pom_packaging_and_import_scope() {
@@ -271,8 +261,7 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  public class FilterDependencies extends Base {
+  public static class FilterDependencies extends Base {
 
     @Test
     public void returns_map_with_cardinality_greater_than_or_equal_to_given() {
@@ -285,9 +274,10 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  @ExtendWith(MockitoExtension.class)
-  public class SearchForBoms {
+  public static class SearchForBoms {
+
+    @Rule
+    public MockitoRule rule = MockitoJUnit.rule();
 
     @Spy
     private SearchMojo mojo;
@@ -326,9 +316,10 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  @ExtendWith(MockitoExtension.class)
-  public class LoadGroup {
+  public static class LoadGroup {
+
+    @Rule
+    public MockitoRule rule = MockitoJUnit.rule();
 
     @Spy
     private SearchMojo mojo;
@@ -336,7 +327,7 @@ public class SearchMojoTest {
     @Mock
     private Log log;
 
-    @BeforeEach
+    @Before
     public void beforeEach() {
       mojo.setLog(log);
     }
