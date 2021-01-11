@@ -1,6 +1,7 @@
 package com.github.olegzzz.maven.plugin.bomsearch;
 
 import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.joining;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,12 +55,14 @@ public class IncrementalSupportMojo extends AbstractMojo {
     return incBuildHelper.inputFileTreeChanged(directoryScanner);
   }
 
-  protected void writeBomList(Map<String, List<String>> boms) throws MojoExecutionException {
+  protected void writeBomList(Map<ArtifactGroup, List<ArtifactId>> boms)
+      throws MojoExecutionException {
     StringBuilder sb = new StringBuilder();
-    for (Map.Entry<String, List<String>> b : boms.entrySet()) {
+    for (Map.Entry<ArtifactGroup, List<ArtifactId>> b : boms.entrySet()) {
       sb.append(b.getKey())
           .append(GROUP_DELIMITER)
-          .append(String.join(ARTIFACT_DELIMITER, b.getValue()))
+          .append(b.getValue().stream().map(ArtifactId::getValue)
+              .collect(joining(ARTIFACT_DELIMITER)))
           .append(System.lineSeparator());
     }
 
@@ -73,7 +76,8 @@ public class IncrementalSupportMojo extends AbstractMojo {
     }
   }
 
-  protected Map<String, List<String>> readBomList() throws MojoExecutionException, IOException {
+  protected Map<ArtifactGroup, List<ArtifactId>> readBomList()
+      throws MojoExecutionException, IOException {
     File filename = new File(incBuildHelper.getMojoStatusDirectory(), BOM_LIST_FILENAME);
     List<String> list;
     try {
@@ -84,15 +88,17 @@ public class IncrementalSupportMojo extends AbstractMojo {
       getLog().debug(msg, e);
       throw e;
     }
-    Map<String, List<String>> res = new HashMap<>();
+    Map<ArtifactGroup, List<ArtifactId>> res = new HashMap<>();
     for (String coordinates : list) {
       String[] groupArtifactList = coordinates.split(GROUP_DELIMITER);
-      String group = groupArtifactList[0];
-      res.putIfAbsent(group, new LinkedList<>());
+      String groupId = groupArtifactList[0];
+      final ArtifactGroup artifactGroup = new ArtifactGroup(groupId);
+      res.putIfAbsent(artifactGroup, new LinkedList<>());
 
-      List<String> artifacts = stream(groupArtifactList[1].split(ARTIFACT_DELIMITER))
+      List<ArtifactId> artifacts = stream(groupArtifactList[1].split(ARTIFACT_DELIMITER))
+          .map(ArtifactId::new)
           .collect(Collectors.toList());
-      res.computeIfPresent(group, (key, values) -> {
+      res.computeIfPresent(artifactGroup, (key, values) -> {
         values.addAll(artifacts);
         return values;
       });
@@ -104,7 +110,9 @@ public class IncrementalSupportMojo extends AbstractMojo {
   public void execute() throws MojoExecutionException {
     if (useIncrementalBuild) {
       getLog().debug("Incremental build enabled.");
-      incBuildHelper = new IncrementalBuildHelper(mojoExecution, session);
+      if (incBuildHelper == null) {
+        incBuildHelper = new IncrementalBuildHelper(mojoExecution, session);
+      }
     } else {
       getLog().debug("Incremental build disabled.");
     }

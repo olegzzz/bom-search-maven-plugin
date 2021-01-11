@@ -1,0 +1,13 @@
+<project>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>bom-search-maven-plugin</artifactId>
+                <configuration>
+                    <minOccurrence>3</minOccurrence>
+                    <mavenRepoUrl>https://foobar</mavenRepoUrl>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

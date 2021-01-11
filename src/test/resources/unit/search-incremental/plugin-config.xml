@@ -1,0 +1,14 @@
+<project>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>bom-search-maven-plugin</artifactId>
+                <configuration>
+                    <minOccurrence>2</minOccurrence>
+                    <mavenRepoUrl>https://repo.maven.apache.org/maven2</mavenRepoUrl>
+                    <useIncrementalBuild>true</useIncrementalBuild>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -15,16 +15,6 @@ public class SearchMojoIT {
   @Rule
   public final MojoRule rule = new MojoRule();
 
-  @Test
-  public void test_config_params_override() throws Exception {
-    File pom = new File("target/test-classes/project-configurations/config-override.xml");
-    assertNotNull(pom);
-    assertTrue(pom.exists());
 
-    SearchMojo searchMojo = (SearchMojo) rule.lookupMojo("search", pom);
-    assertNotNull(searchMojo);
-    assertEquals(3, rule.getVariableValueFromObject(searchMojo, "minOccurrence"));
-    assertEquals("https://foobar", rule.getVariableValueFromObject(searchMojo, "mavenRepoUrl"));
-  }
 
 }
