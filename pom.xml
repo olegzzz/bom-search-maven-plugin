@@ -44,7 +44,6 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.version>3.6.0</maven.version>
-        <junit.version>5.7.0</junit.version>
     </properties>
 
     <distributionManagement>
@@ -239,7 +238,7 @@
                     <failsOnError>true</failsOnError>
                     <linkXRef>false</linkXRef>
                     <sourceDirectories>
-                        <sourceDirectory>${project.build.sourceDirectory}gst</sourceDirectory>
+                        <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
                     </sourceDirectories>
                 </configuration>
                 <executions>
