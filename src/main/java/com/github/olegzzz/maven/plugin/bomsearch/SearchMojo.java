@@ -3,7 +3,6 @@ package com.github.olegzzz.maven.plugin.bomsearch;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -66,14 +65,13 @@ public class SearchMojo extends IncrementalSupportMojo {
 
     Map<ArtifactGroup, List<ArtifactId>> boms;
     if (super.useIncrementalBuild) {
-      if (isPomFileChanged()) {
+      if (isPomFilesChanged()) {
         getLog().info("Changes detected. Searching for available BOM dependencies.");
         boms = doSearch();
       } else {
         getLog().info("No changes detected.");
-        try {
-          boms = readBomList();
-        } catch (IOException e) {
+        boms = readBomList();
+        if (boms == null) {
           boms = doSearch();
         }
       }

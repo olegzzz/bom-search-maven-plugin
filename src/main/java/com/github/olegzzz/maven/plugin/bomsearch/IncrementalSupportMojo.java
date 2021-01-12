@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
@@ -47,7 +48,7 @@ public class IncrementalSupportMojo extends AbstractMojo {
 
   private IncrementalBuildHelper incBuildHelper;
 
-  protected boolean isPomFileChanged() throws MojoExecutionException {
+  protected boolean isPomFilesChanged() throws MojoExecutionException {
     DirectoryScanner directoryScanner = incBuildHelper.getDirectoryScanner();
     directoryScanner.setBasedir(project.getBasedir());
     directoryScanner.setIncludes("**/pom.xml");
@@ -55,39 +56,78 @@ public class IncrementalSupportMojo extends AbstractMojo {
     return incBuildHelper.inputFileTreeChanged(directoryScanner);
   }
 
-  protected void writeBomList(Map<ArtifactGroup, List<ArtifactId>> boms)
-      throws MojoExecutionException {
-    StringBuilder sb = new StringBuilder();
-    for (Map.Entry<ArtifactGroup, List<ArtifactId>> b : boms.entrySet()) {
-      sb.append(b.getKey())
-          .append(GROUP_DELIMITER)
-          .append(b.getValue().stream().map(ArtifactId::getValue)
-              .collect(joining(ARTIFACT_DELIMITER)))
-          .append(System.lineSeparator());
+  /**
+   * Writes data represented as an iterable into file with name <code>filename</code> using
+   * <code>toString</code>.
+   *
+   * @param fileName name of the status file
+   * @param data     data to be written
+   */
+  protected void writeStatusFile(String fileName, String data) {
+    File filename = null;
+    try {
+      filename = new File(incBuildHelper.getMojoStatusDirectory(), fileName);
+    } catch (MojoExecutionException e) {
+      String msg = "Unable to read status directory.";
+      getLog().debug(msg, e);
+      getLog().warn(msg);
+      return;
     }
 
-    File filename = new File(incBuildHelper.getMojoStatusDirectory(), BOM_LIST_FILENAME);
     try {
-      FileUtils.fileWrite(filename.getAbsolutePath(), sb.toString());
+      FileUtils.fileWrite(filename.getAbsolutePath(), data);
     } catch (IOException e) {
-      String msg = "Unable to write build status.";
-      getLog().warn(msg);
+      String msg = String.format("Unable to write status file '%s'.", fileName);
       getLog().debug(msg, e);
+      getLog().warn(msg);
     }
   }
 
-  protected Map<ArtifactGroup, List<ArtifactId>> readBomList()
-      throws MojoExecutionException, IOException {
-    File filename = new File(incBuildHelper.getMojoStatusDirectory(), BOM_LIST_FILENAME);
-    List<String> list;
+  @Nullable
+  protected List<String> readStatusFile(String fileName) {
+    File file;
     try {
-      list = FileUtils.loadFile(filename);
+      file = new File(incBuildHelper.getMojoStatusDirectory(), fileName);
+    } catch (MojoExecutionException e) {
+      String msg = "Unable to read status directory.";
+      getLog().debug(msg, e);
+      getLog().warn(msg);
+      return null;
+    }
+    try {
+      List<String> data = FileUtils.loadFile(file);
+      if (data.isEmpty()) {
+        return null;
+      } else {
+        return data;
+      }
     } catch (IOException e) {
-      String msg = "Unable to read build status.";
+      String msg = String.format("Unable to read build status file '%s'.", fileName);
       getLog().warn(msg);
       getLog().debug(msg, e);
-      throw e;
+      return null;
     }
+  }
+
+  protected void writeBomList(Map<ArtifactGroup, List<ArtifactId>> boms) {
+    StringBuilder sb = new StringBuilder();
+    for (Map.Entry<ArtifactGroup, List<ArtifactId>> entry : boms.entrySet()) {
+      sb.append(entry.getKey())
+          .append(GROUP_DELIMITER)
+          .append(entry.getValue().stream().map(ArtifactId::getValue)
+              .collect(joining(ARTIFACT_DELIMITER)))
+          .append(System.lineSeparator());
+    }
+    writeStatusFile(BOM_LIST_FILENAME, sb.toString());
+  }
+
+  @Nullable
+  protected Map<ArtifactGroup, List<ArtifactId>> readBomList() {
+    List<String> list = readStatusFile(BOM_LIST_FILENAME);
+    if (list == null) {
+      return null;
+    }
+
     Map<ArtifactGroup, List<ArtifactId>> res = new HashMap<>();
     for (String coordinates : list) {
       String[] groupArtifactList = coordinates.split(GROUP_DELIMITER);
@@ -117,4 +157,5 @@ public class IncrementalSupportMojo extends AbstractMojo {
       getLog().debug("Incremental build disabled.");
     }
   }
+
 }
