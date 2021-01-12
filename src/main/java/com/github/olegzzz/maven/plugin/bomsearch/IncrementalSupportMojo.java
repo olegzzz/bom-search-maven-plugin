@@ -43,8 +43,8 @@ public class IncrementalSupportMojo extends AbstractMojo {
   @Parameter(defaultValue = "${session}", readonly = true, required = true)
   private MavenSession session;
 
-  @Parameter(defaultValue = "true", property = "useIncrementalBuild")
-  protected boolean useIncrementalBuild = true;
+  @Parameter(defaultValue = "true", property = "incremental")
+  protected boolean incremental = true;
 
   private IncrementalBuildHelper incBuildHelper;
 
@@ -148,7 +148,7 @@ public class IncrementalSupportMojo extends AbstractMojo {
 
   @Override
   public void execute() throws MojoExecutionException {
-    if (useIncrementalBuild) {
+    if (incremental) {
       getLog().debug("Incremental build enabled.");
       if (incBuildHelper == null) {
         incBuildHelper = new IncrementalBuildHelper(mojoExecution, session);
