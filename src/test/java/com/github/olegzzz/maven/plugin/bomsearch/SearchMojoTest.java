@@ -3,23 +3,10 @@ package com.github.olegzzz.maven.plugin.bomsearch;
 import static com.github.olegzzz.maven.plugin.bomsearch.SearchMojo.GET_HREF;
 import static com.github.olegzzz.maven.plugin.bomsearch.SearchMojo.TITLE_BOM;
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.AdditionalAnswers.returnsFirstArg;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,48 +19,39 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.model.Model;
 import org.apache.maven.project.MavenProject;
-import org.jsoup.HttpStatusException;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.DisplayNameGenerator;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
 
-@DisplayName("Search mojo")
-@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@RunWith(Enclosed.class)
 public class SearchMojoTest {
 
-  @Nested
-  @DisplayName("TITLE_BOM predicate")
-  public class TitleBomPredicate {
+  public static class TitleBomPredicate {
 
     public static final String TITLE = "title";
 
-    @ParameterizedTest
-    @NullAndEmptySource
-    public void returns_False_if_value_is_empty(String title) {
-      assertFalse(TITLE_BOM.test(elementWithTitle(title)));
+    @Test
+    public void returns_False_if_value_is_empty() {
+      assertFalse(TITLE_BOM.test(elementWithTitle("")));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"some-dependency-bom", "another-bom"})
-    public void returns_True_if_value_contains_bom(String title) {
-      assertTrue(TITLE_BOM.test(elementWithTitle(title)));
+    @Test
+    public void returns_False_if_value_is_null() {
+      assertFalse(TITLE_BOM.test(elementWithTitle(null)));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"notbom", "another-dependency"})
-    public void returns_False_if_value_contains_no_bom(String title) {
-      assertFalse(TITLE_BOM.test(elementWithTitle(title)));
+    @Test
+    public void returns_True_if_value_contains_bom() {
+      assertTrue(TITLE_BOM.test(elementWithTitle("some-dependency-bom")));
+      assertTrue(TITLE_BOM.test(elementWithTitle("another-bom")));
+    }
+
+    @Test
+    public void returns_False_if_value_contains_no_bom() {
+      assertFalse(TITLE_BOM.test(elementWithTitle("notbom")));
+      assertFalse(TITLE_BOM.test(elementWithTitle("another-dependency")));
     }
 
     private Element elementWithTitle(String title) {
@@ -83,9 +61,7 @@ public class SearchMojoTest {
     }
   }
 
-  @Nested
-  @DisplayName("PACKAGING_POM predicate")
-  public class PackagingPomPredicate {
+  public static class PackagingPomPredicate {
 
     @Test
     public void returns_True_If_value_is_pom() {
@@ -103,9 +79,7 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  @DisplayName("SCOPE_IMPORT predicate")
-  public class ScopeImportPredicate {
+  public static class ScopeImportPredicate {
 
     @Test
     public void returns_True_If_value_is_import() {
@@ -123,21 +97,22 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  @DisplayName("REMOVE_SLASH function")
-  public class RemoveSlashFunction {
+  public static class RemoveSlashFunction {
 
-    @ParameterizedTest(name = "in string \"{0}\"")
-    @ValueSource(strings = {"foobar", "foo/", "foo/bar", "/", "//", "/bar", "/foo/"})
-    public void replaces_slash(String string) {
-      assertFalse(SearchMojo.REMOVE_SLASH.apply(string).contains("/"));
+    @Test
+    public void replaces_slash() {
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("foobar").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("foo/").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("foo/bar").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("/").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("//").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("/bar").contains("/"));
+      assertFalse(SearchMojo.REMOVE_SLASH.apply("/foo/").contains("/"));
     }
 
   }
 
-  @Nested
-  @DisplayName("GET_HREF function")
-  public class GetHrefFunction {
+  public static class GetHrefFunction {
 
     @Test
     public void returns_value_when_attribute_present() {
@@ -155,9 +130,7 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  @DisplayName("MIN_COUNT_PREDICATE")
-  public class MinCountPredicate {
+  public static class MinCountPredicate {
 
     @Test
     public void returns_True_If_value_greater_than_or_equal_to_argument() {
@@ -184,7 +157,7 @@ public class SearchMojoTest {
 
     protected SearchMojo mojo;
 
-    @BeforeEach
+    @Before
     public void setUp() {
       mojo = new SearchMojo();
     }
@@ -199,8 +172,7 @@ public class SearchMojoTest {
 
   }
 
-  @Nested
-  public class GetProjectBoms extends Base {
+  public static class GetProjectBoms extends Base {
 
     @Test
     public void returns_empty_set_If_no_DependencyManagement_section() {
@@ -221,16 +193,15 @@ public class SearchMojoTest {
       management.setDependencies(deps);
       model.setDependencyManagement(management);
       project.setModel(model);
-      Set<String> projectBoms = mojo.getProjectBoms(project);
+      Set<Dependency> projectBoms = mojo.getProjectBoms(project);
 
       assertEquals(1, projectBoms.size());
-      assertTrue(projectBoms.contains("org.foobar"));
+      assertTrue(projectBoms.stream().anyMatch(d -> "org.foobar".equals(d.getGroupId())));
     }
 
   }
 
-  @Nested
-  public class SelectDependencies extends Base {
+  public static class SelectDependencies extends Base {
 
     @Test
     public void returns_dependencies_excluding_pom_packaging_and_import_scope() {
@@ -243,9 +214,10 @@ public class SearchMojoTest {
       );
       project.setDependencies(deps);
 
-      List<String> selected = mojo.selectDependencies(deps, Collections.emptySet());
+      List<ArtifactGroup> selected = mojo.selectGroups(deps, Collections.emptySet());
+
       assertEquals(1, selected.size());
-      assertTrue(selected.contains("org.foobar"));
+      assertTrue(selected.contains(new ArtifactGroup("org.foobar")));
 
     }
 
@@ -259,95 +231,30 @@ public class SearchMojoTest {
           createDependency("org.importscope", "jar", "import")
       );
       project.setDependencies(deps);
-      List<String> selected =
-          mojo.selectDependencies(deps, new HashSet<>(Collections.singletonList("org.baz")));
+
+      Dependency dep1 = new Dependency();
+      dep1.setGroupId("org.baz");
+
+      List<ArtifactGroup> selected =
+          mojo.selectGroups(deps, new HashSet<>(Collections.singletonList(dep1)));
       assertEquals(1, selected.size());
-      assertTrue(selected.contains("org.foobar"));
+      assertTrue(selected.contains(new ArtifactGroup("org.foobar")));
     }
 
   }
 
-  @Nested
-  public class FilterDependencies extends Base {
+  public static class FilterDependencies extends Base {
 
     @Test
     public void returns_map_with_cardinality_greater_than_or_equal_to_given() {
-      String group1 = "org.group1";
-      Collection<String> groups = asList(group1, group1, group1, "org.group2");
-      Collection<String> filtered = mojo.filterDependencies(groups, 3);
+      ArtifactGroup group1 = new ArtifactGroup("org.group1");
+      ArtifactGroup group2 = new ArtifactGroup("org.group2");
+
+      Collection<ArtifactGroup> groups = asList(group1, group1, group1, group2);
+      List<ArtifactGroup> filtered = mojo.filterGroups(groups, 3);
       assertEquals(1, filtered.size());
       assertTrue(filtered.contains(group1));
     }
 
   }
-
-  @Nested
-  @ExtendWith(MockitoExtension.class)
-  public class SearchForBoms {
-
-    @Spy
-    private SearchMojo mojo;
-
-    @Test
-    public void returns_boms_If_available() {
-      doAnswer(returnsFirstArg()).when(mojo).groupUri(anyString());
-      Document group1Doc = mock(Document.class);
-      Document group2Doc = mock(Document.class);
-      doReturn(group1Doc)
-          .doReturn(group2Doc)
-          .doReturn(null) // artifact for private group not found in central repo
-          .when(mojo).loadGroup(anyString(), any(SearchMojo.DocumentLoader.class));
-      List<String> bomsList = singletonList("bom");
-      doReturn(emptyList())
-          .doReturn(bomsList)
-          .doReturn(emptyList())
-          .when(mojo).parseBomArtifactIds(any(Document.class));
-      Map<String, List<String>> boms =
-          mojo.searchForBoms(asList("group1", "group2", "privateGroup"));
-      assertEquals(1, boms.size());
-      assertTrue(boms.get("group2").contains("bom"));
-
-    }
-
-    @Test
-    public void returns_empty_list_If_no_boms_available() {
-      doAnswer(returnsFirstArg()).when(mojo).groupUri(anyString());
-      Document document = mock(Document.class);
-      doReturn(document).when(mojo).loadGroup(anyString(), any(SearchMojo.DocumentLoader.class));
-      doReturn(emptyList()).when(mojo).parseBomArtifactIds(eq(document));
-      Map<String, List<String>> boms = mojo.searchForBoms(singletonList("group1"));
-      assertTrue(boms.isEmpty());
-    }
-
-
-  }
-
-  @Nested
-  @ExtendWith(MockitoExtension.class)
-  public class LoadGroup {
-
-    @Spy
-    private SearchMojo mojo;
-
-    @Test
-    public void returns_null_if_unable_to_load() throws IOException {
-      SearchMojo.DocumentLoader loader = mock(SearchMojo.DocumentLoader.class);
-      String uri = "https://foobar.com";
-      when(loader.load(anyString()))
-          .thenThrow(new HttpStatusException("Expected exception. Not found", 404, uri));
-      assertNull(mojo.loadGroup(uri, loader));
-    }
-
-    @Test
-    public void returns_document_if_can_load() throws IOException {
-      SearchMojo.DocumentLoader loader = mock(SearchMojo.DocumentLoader.class);
-      String uri = "https://foobar.com";
-      Document doc = mock(Document.class);
-      when(loader.load(anyString())).thenReturn(doc);
-      assertSame(mojo.loadGroup(uri, loader), doc);
-    }
-
-  }
-
-
 }
