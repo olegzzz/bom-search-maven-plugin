@@ -50,7 +50,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <useIncrementalBuild>false</useIncrementalBuild>
+                    <incremental>false</incremental>
                 </configuration>
             </plugin>
         </plugins>

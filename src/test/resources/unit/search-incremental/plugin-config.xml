@@ -6,7 +6,7 @@
                 <configuration>
                     <minOccurrence>2</minOccurrence>
                     <mavenRepoUrl>https://repo.maven.apache.org/maven2</mavenRepoUrl>
-                    <useIncrementalBuild>true</useIncrementalBuild>
+                    <incremental>true</incremental>
                 </configuration>
             </plugin>
         </plugins>

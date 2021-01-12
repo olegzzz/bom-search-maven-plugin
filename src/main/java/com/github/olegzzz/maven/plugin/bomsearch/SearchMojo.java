@@ -64,7 +64,7 @@ public class SearchMojo extends IncrementalSupportMojo {
     docParser = new DocumentParser(new JsoupDocumentLoader());
 
     Map<ArtifactGroup, List<ArtifactId>> boms;
-    if (super.useIncrementalBuild) {
+    if (super.incremental) {
       if (isPomFilesChanged()) {
         getLog().info("Changes detected. Searching for available BOM dependencies.");
         boms = doSearch();
