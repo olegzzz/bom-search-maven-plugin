@@ -25,7 +25,7 @@ import org.jsoup.nodes.Element;
 //todo: handle maven settings / passwords and repos urls
 
 /**
- * Mojo searches maven repo for available BOM artifacts for project dependencies.
+ * Searches for available BOM dependencies for current project.
  */
 @Mojo(name = "search", defaultPhase = LifecyclePhase.PROCESS_SOURCES)
 public class SearchMojo extends IncrementalSupportMojo {
@@ -48,11 +48,11 @@ public class SearchMojo extends IncrementalSupportMojo {
   static final String MAVEN_CENTRAL = "https://repo.maven.apache.org/maven2";
 
   @SuppressWarnings("unused")
-  @Parameter(property = "minOccurrence", defaultValue = "2")
+  @Parameter(property = "bomsearch.minOccurrence", defaultValue = "2")
   private int minOccurrence;
 
   @SuppressWarnings("unused")
-  @Parameter(property = "mavenRepoUrl", defaultValue = MAVEN_CENTRAL)
+  @Parameter(property = "bomsearch.mavenRepoUrl", defaultValue = MAVEN_CENTRAL)
   private String mavenRepoUrl;
 
   private DocumentParser docParser;
@@ -75,10 +75,10 @@ public class SearchMojo extends IncrementalSupportMojo {
           boms = doSearch();
         }
       }
-      writeBomList(boms);
     } else {
       boms = doSearch();
     }
+    writeBomList(boms);
     printResults(boms);
   }
 
@@ -97,7 +97,7 @@ public class SearchMojo extends IncrementalSupportMojo {
     }
   }
 
-  private List<String> flatten(Map<ArtifactGroup, List<ArtifactId>> boms) {
+  protected List<String> flatten(Map<ArtifactGroup, List<ArtifactId>> boms) {
     return boms
         .entrySet()
         .stream()

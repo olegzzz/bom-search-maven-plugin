@@ -28,9 +28,9 @@ This plugin tries to do just that: given the project pom to lookup possible BOM 
 
 Parameter | Type | Description | Default
 ----------|------|---------|------------
-minOccurrence | int | Minimal number of dependencies that share a group to search for BOM for that group | 2
-mavenRepoUrl | URL | Maven repository URL to search artifact | https://repo.maven.apache.org/maven2
-incremental | boolean | Whether to store results for a re-use | true
+bomsearch.minOccurrence | int | Minimal number of dependencies that share a group to search for BOM for that group | 2
+bomsearch.mavenRepoUrl | URL | Maven repository URL to search artifact | https://repo.maven.apache.org/maven2
+bomsearch.incremental | boolean | Whether to store results for a re-use | true
 
 ### Usage
 

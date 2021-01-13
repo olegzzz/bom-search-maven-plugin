@@ -8,7 +8,7 @@
     <artifactId>default</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <name>Test for default configuration</name>
+    <name>Test for default enforce mojo to assert it support lenient param</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -45,12 +45,12 @@
                     <execution>
                         <id>default-cli</id>
                         <goals>
-                            <goal>search</goal>
+                            <goal>enforce</goal>
                         </goals>
                     </execution>
                 </executions>
                 <configuration>
-                    <incremental>false</incremental>
+                    <lenient>true</lenient>
                 </configuration>
             </plugin>
         </plugins>

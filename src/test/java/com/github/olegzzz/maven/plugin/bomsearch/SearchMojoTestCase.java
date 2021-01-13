@@ -1,10 +1,13 @@
 package com.github.olegzzz.maven.plugin.bomsearch;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,10 +23,22 @@ import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.incremental.IncrementalBuildHelper;
-import org.apache.maven.shared.utils.io.DirectoryScanner;
 
 public class SearchMojoTestCase extends AbstractMojoTestCase {
+
+  private Log log;
+
+  @Override
+  protected void setUp() throws Exception {
+    super.setUp();
+    log = mock(Log.class);
+  }
+
+  @Override
+  protected void tearDown() throws Exception {
+    super.tearDown();
+    reset(log);
+  }
 
   public void test_config_params_override() throws Exception {
     SearchMojo mojo = getMojo("search-config-override");
@@ -33,78 +48,54 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
   }
 
   public void test_empty_search() throws Exception {
-    SearchMojo mojo = getMojo("search-basic");
+    SearchMojo mojo = spy(getMojo("search-basic"));
 
     MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
     project.setOriginalModel(new Model());
 
     Log log = mock(Log.class);
     mojo.setLog(log);
+
+    doNothing().when(mojo).writeStatusFile(anyString(), anyString());
 
     mojo.execute();
 
     verify(log).debug(startsWith("Incremental build disabled."));
     verify(log).info(startsWith("No suitable BOMs found."));
+    verify(mojo).writeStatusFile(anyString(), anyString());
   }
 
   public void test_basic_search() throws Exception {
-    SearchMojo mojo = getMojo("search-basic");
-
-    Log log = mock(Log.class);
+    SearchMojo mojo = spy(getMojo("search-basic"));
     mojo.setLog(log);
+
     MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
     project.setOriginalModel(new Model());
 
-    Dependency dep1 = new Dependency();
-    dep1.setGroupId("org.springframework");
-    dep1.setArtifactId("spring-context");
-
-    Dependency dep2 = new Dependency();
-    dep2.setGroupId("org.springframework");
-    dep2.setArtifactId("spring-core");
-
-    project.setDependencies(Arrays.asList(dep1, dep2));
-
-    DocumentParser docParserMock = mock(DocumentParser.class);
-    when(docParserMock.parseArtifactsIds(anyString()))
-        .thenReturn(Collections.singletonList(new ArtifactId("spring-bom")));
-    setVariableValueToObject(mojo, "docParser", docParserMock);
+    setupDependencies(mojo);
+    setupDocParser(mojo, "spring-bom");
+    doNothing().when(mojo).writeStatusFile(anyString(), anyString());
 
     mojo.execute();
 
     verify(log).debug(startsWith("Incremental build disabled."));
     verify(log).info(
         startsWith("Following BOMs found for module: [org.springframework:spring-framework-bom]."));
-
+    verify(mojo).writeStatusFile(anyString(), anyString());
   }
 
   public void test_incremental_with_changes() throws Exception {
-    SearchMojo mojo = getMojo("search-incremental");
-
-    Log log = mock(Log.class);
+    SearchMojo mojo = spy(getMojo("search-incremental"));
     mojo.setLog(log);
+
     MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
     project.setOriginalModel(new Model());
 
-    Dependency dep1 = new Dependency();
-    dep1.setGroupId("org.springframework");
-    dep1.setArtifactId("spring-context");
+    setupDependencies(mojo);
+    setupDocParser(mojo, "spring-bom");
 
-    Dependency dep2 = new Dependency();
-    dep2.setGroupId("org.springframework");
-    dep2.setArtifactId("spring-core");
-
-    project.setDependencies(Arrays.asList(dep1, dep2));
-
-    DocumentParser docParserMock = mock(DocumentParser.class);
-    when(docParserMock.parseArtifactsIds(anyString()))
-        .thenReturn(Collections.singletonList(new ArtifactId("spring-bom")));
-    setVariableValueToObject(mojo, "docParser", docParserMock);
-    IncrementalBuildHelper buildHelperMock = mock(IncrementalBuildHelper.class);
-    when(buildHelperMock.inputFileTreeChanged(any(DirectoryScanner.class))).thenReturn(true);
-    DirectoryScanner dirScannerMock = mock(DirectoryScanner.class);
-    when(buildHelperMock.getDirectoryScanner()).thenReturn(dirScannerMock);
-    setVariableValueToObject(mojo, "incBuildHelper", buildHelperMock);
+    doReturn(true).doReturn(true).when(mojo).isPomFilesChanged();
+    doNothing().when(mojo).writeStatusFile(anyString(), anyString());
 
     mojo.execute();
 
@@ -119,35 +110,22 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
     verify(log).info(startsWith("Changes detected. Searching for available BOM dependencies."));
     verify(log).info(
         startsWith("Following BOMs found for module: [org.springframework:spring-framework-bom]."));
+    verify(mojo, times(2)).isPomFilesChanged();
+    verify(mojo, times(2)).writeStatusFile(anyString(), anyString());
   }
 
   public void test_incremental_no_changes() throws Exception {
-    SearchMojo mojo = getMojo("search-incremental");
-
-    Log log = mock(Log.class);
+    SearchMojo mojo = spy(getMojo("search-incremental"));
     mojo.setLog(log);
+
     MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
     project.setOriginalModel(new Model());
 
-    Dependency dep1 = new Dependency();
-    dep1.setGroupId("org.springframework");
-    dep1.setArtifactId("spring-context");
+    setupDependencies(mojo);
+    setupDocParser(mojo, "spring-bom");
 
-    Dependency dep2 = new Dependency();
-    dep2.setGroupId("org.springframework");
-    dep2.setArtifactId("spring-core");
-
-    project.setDependencies(Arrays.asList(dep1, dep2));
-
-    DocumentParser docParserMock = mock(DocumentParser.class);
-    when(docParserMock.parseArtifactsIds(anyString()))
-        .thenReturn(Collections.singletonList(new ArtifactId("spring-bom")));
-    setVariableValueToObject(mojo, "docParser", docParserMock);
-    IncrementalBuildHelper buildHelperMock = mock(IncrementalBuildHelper.class);
-    when(buildHelperMock.inputFileTreeChanged(any(DirectoryScanner.class))).thenReturn(false);
-    DirectoryScanner dirScannerMock = mock(DirectoryScanner.class);
-    when(buildHelperMock.getDirectoryScanner()).thenReturn(dirScannerMock);
-    setVariableValueToObject(mojo, "incBuildHelper", buildHelperMock);
+    doReturn(true).doReturn(false).when(mojo).isPomFilesChanged();
+    doNothing().when(mojo).writeStatusFile(anyString(), anyString());
 
     mojo.execute();
 
@@ -163,6 +141,8 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
     verify(log).info(
         startsWith("Following BOMs found for module: [org.springframework:spring-framework-bom]."));
 
+    verify(mojo, times(2)).isPomFilesChanged();
+    verify(mojo, times(2)).writeStatusFile(anyString(), anyString());
 
   }
 
@@ -179,6 +159,20 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
 
 
     return mojo;
+  }
+
+  private void setupDependencies(SearchMojo mojo) throws IllegalAccessException {
+    MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
+
+    Dependency dep1 = new Dependency();
+    dep1.setGroupId("org.springframework");
+    dep1.setArtifactId("spring-context");
+
+    Dependency dep2 = new Dependency();
+    dep2.setGroupId("org.springframework");
+    dep2.setArtifactId("spring-core");
+
+    project.setDependencies(Arrays.asList(dep1, dep2));
   }
 
   private MavenSession getMockMavenSession() {
@@ -207,6 +201,13 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
     md.setPluginDescriptor(pd);
 
     return me;
+  }
+
+  private void setupDocParser(SearchMojo mojo, String artifactId) throws IllegalAccessException {
+    DocumentParser docParserMock = mock(DocumentParser.class);
+    when(docParserMock.parseArtifactsIds(anyString()))
+        .thenReturn(Collections.singletonList(new ArtifactId(artifactId)));
+    setVariableValueToObject(mojo, "docParser", docParserMock);
   }
 
 }
