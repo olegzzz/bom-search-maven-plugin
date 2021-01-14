@@ -159,7 +159,7 @@ public class SearchMojo extends IncrementalSupportMojo {
 
   @VisibleForTesting
   Set<Dependency> getProjectBoms(MavenProject project) {
-    return Optional.ofNullable(project.getDependencyManagement())
+    return Optional.ofNullable(project.getOriginalModel().getDependencyManagement())
         .orElse(new DependencyManagement())
         .getDependencies()
         .stream()

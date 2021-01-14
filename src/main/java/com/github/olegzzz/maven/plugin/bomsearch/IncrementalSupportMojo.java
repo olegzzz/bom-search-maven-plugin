@@ -64,7 +64,7 @@ public class IncrementalSupportMojo extends AbstractMojo {
    * @param data     data to be written
    */
   protected void writeStatusFile(String fileName, String data) {
-    File filename = null;
+    File filename;
     try {
       filename = new File(incBuildHelper.getMojoStatusDirectory(), fileName);
     } catch (MojoExecutionException e) {

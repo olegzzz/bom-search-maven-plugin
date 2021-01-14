@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
 import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -21,14 +22,8 @@ import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.incremental.IncrementalBuildHelper;
 import org.apache.maven.shared.utils.io.DirectoryScanner;
-import org.junit.Rule;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 public class SearchMojoTestCase extends AbstractMojoTestCase {
-
-  @Rule
-  public MockitoRule rule = MockitoJUnit.rule();
 
   public void test_config_params_override() throws Exception {
     SearchMojo mojo = getMojo("search-config-override");
@@ -39,6 +34,9 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
 
   public void test_empty_search() throws Exception {
     SearchMojo mojo = getMojo("search-basic");
+
+    MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
+    project.setOriginalModel(new Model());
 
     Log log = mock(Log.class);
     mojo.setLog(log);
@@ -55,6 +53,7 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
     Log log = mock(Log.class);
     mojo.setLog(log);
     MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
+    project.setOriginalModel(new Model());
 
     Dependency dep1 = new Dependency();
     dep1.setGroupId("org.springframework");
@@ -85,6 +84,7 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
     Log log = mock(Log.class);
     mojo.setLog(log);
     MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
+    project.setOriginalModel(new Model());
 
     Dependency dep1 = new Dependency();
     dep1.setGroupId("org.springframework");
@@ -127,6 +127,7 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
     Log log = mock(Log.class);
     mojo.setLog(log);
     MavenProject project = (MavenProject) getVariableValueFromObject(mojo, "project");
+    project.setOriginalModel(new Model());
 
     Dependency dep1 = new Dependency();
     dep1.setGroupId("org.springframework");
