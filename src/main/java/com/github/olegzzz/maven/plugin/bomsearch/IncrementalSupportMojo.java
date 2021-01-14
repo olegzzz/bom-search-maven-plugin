@@ -38,12 +38,18 @@ public class IncrementalSupportMojo extends AbstractMojo {
   private MojoExecution mojoExecution;
 
   /**
+   * Set this to 'true' to disable plugin.
+   */
+  @Parameter(property = "bomsearch.skip", defaultValue = "false")
+  protected boolean skip;
+
+  /**
    * The current build session instance.
    */
   @Parameter(defaultValue = "${session}", readonly = true, required = true)
   private MavenSession session;
 
-  @Parameter(defaultValue = "true", property = "incremental")
+  @Parameter(defaultValue = "true", property = "bomsearch.incremental")
   protected boolean incremental = true;
 
   private IncrementalBuildHelper incBuildHelper;
@@ -67,7 +73,7 @@ public class IncrementalSupportMojo extends AbstractMojo {
     File filename;
     try {
       filename = new File(incBuildHelper.getMojoStatusDirectory(), fileName);
-    } catch (MojoExecutionException e) {
+    } catch (Exception e) {
       String msg = "Unable to read status directory.";
       getLog().debug(msg, e);
       getLog().warn(msg);
@@ -76,7 +82,7 @@ public class IncrementalSupportMojo extends AbstractMojo {
 
     try {
       FileUtils.fileWrite(filename.getAbsolutePath(), data);
-    } catch (IOException e) {
+    } catch (Exception e) {
       String msg = String.format("Unable to write status file '%s'.", fileName);
       getLog().debug(msg, e);
       getLog().warn(msg);
@@ -109,6 +115,7 @@ public class IncrementalSupportMojo extends AbstractMojo {
     }
   }
 
+  // TODO: replace with SearchMojo.flatten
   protected void writeBomList(Map<ArtifactGroup, List<ArtifactId>> boms) {
     StringBuilder sb = new StringBuilder();
     for (Map.Entry<ArtifactGroup, List<ArtifactId>> entry : boms.entrySet()) {
@@ -148,6 +155,9 @@ public class IncrementalSupportMojo extends AbstractMojo {
 
   @Override
   public void execute() throws MojoExecutionException {
+    if (skip) {
+      return;
+    }
     if (incremental) {
       getLog().debug("Incremental build enabled.");
       if (incBuildHelper == null) {
