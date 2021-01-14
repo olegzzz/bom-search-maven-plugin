@@ -1,5 +1,7 @@
 package com.github.olegzzz.maven.plugin.bomsearch;
 
+import java.util.Objects;
+
 public class ArtifactGroup {
 
   private final String value;
@@ -28,7 +30,7 @@ public class ArtifactGroup {
 
     ArtifactGroup that = (ArtifactGroup) o;
 
-    return value != null ? value.equals(that.value) : that.value == null;
+    return Objects.equals(value, that.value);
   }
 
   @Override

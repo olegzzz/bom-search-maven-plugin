@@ -177,6 +177,7 @@ public class SearchMojoTest {
     @Test
     public void returns_empty_set_If_no_DependencyManagement_section() {
       MavenProject project = new MavenProject();
+      project.setOriginalModel(new Model());
       assertTrue(mojo.getProjectBoms(project).isEmpty());
     }
 
@@ -192,7 +193,7 @@ public class SearchMojoTest {
       );
       management.setDependencies(deps);
       model.setDependencyManagement(management);
-      project.setModel(model);
+      project.setOriginalModel(model);
       Set<Dependency> projectBoms = mojo.getProjectBoms(project);
 
       assertEquals(1, projectBoms.size());

@@ -1,5 +1,5 @@
-def bomList = new File( basedir, "target/maven-status/bom-search-maven-plugin/search/default-cli/bomList.lst" );
-def lines = bomList.readLines();
+def bomList = new File( basedir, "target/maven-status/bom-search-maven-plugin/search/default-cli/bomList.lst" )
+def lines = bomList.readLines()
 assert lines[0] == 'org.springframework:spring-framework-bom'
 
 def log = new File(basedir,'build.log')
