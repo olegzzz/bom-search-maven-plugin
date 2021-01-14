@@ -18,28 +18,25 @@ public class EnforceMojo extends SearchMojo {
   // TODO: support for excludes
   // TODO: support for version check
 
-  /**
-   * Set this to 'true' to not fail the build.
-   */
-  @Parameter(property = "bomsearch.enforce.skip", defaultValue = "false")
-  private boolean skip;
-
-  @Parameter(property = "bomsearch.enforce.lenient", defaultValue = "false")
+  @Parameter(property = "bomsearch.lenient", defaultValue = "false")
   private boolean lenient;
 
   @Override
   public void execute() throws MojoExecutionException {
     super.execute();
-    if (!skip) {
-      Map<ArtifactGroup, List<ArtifactId>> boms = Optional.ofNullable(readBomList()).orElse(
-          Collections.emptyMap());
-      if (!boms.isEmpty()) {
-        final String msg =
-            String.format("There are following BOMs available but not used: %s", flatten(boms));
-        getLog().warn(msg);
-        if (!lenient) {
-          throw new MojoExecutionException(msg);
-        }
+
+    if (skip) {
+      return;
+    }
+
+    Map<ArtifactGroup, List<ArtifactId>> boms = Optional.ofNullable(readBomList()).orElse(
+        Collections.emptyMap());
+    if (!boms.isEmpty()) {
+      final String msg =
+          String.format("There are following BOMs available but not used: %s", flatten(boms));
+      getLog().warn(msg);
+      if (!lenient) {
+        throw new MojoExecutionException(msg);
       }
     }
   }

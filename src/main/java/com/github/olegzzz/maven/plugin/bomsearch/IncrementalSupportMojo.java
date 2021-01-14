@@ -38,6 +38,12 @@ public class IncrementalSupportMojo extends AbstractMojo {
   private MojoExecution mojoExecution;
 
   /**
+   * Set this to 'true' to disable plugin.
+   */
+  @Parameter(property = "bomsearch.skip", defaultValue = "false")
+  protected boolean skip;
+
+  /**
    * The current build session instance.
    */
   @Parameter(defaultValue = "${session}", readonly = true, required = true)
@@ -149,6 +155,9 @@ public class IncrementalSupportMojo extends AbstractMojo {
 
   @Override
   public void execute() throws MojoExecutionException {
+    if (skip) {
+      return;
+    }
     if (incremental) {
       getLog().debug("Incremental build enabled.");
       if (incBuildHelper == null) {

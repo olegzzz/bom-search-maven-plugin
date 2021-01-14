@@ -61,6 +61,10 @@ public class SearchMojo extends IncrementalSupportMojo {
   public void execute() throws MojoExecutionException {
     super.execute();
 
+    if (skip) {
+      return;
+    }
+
     docParser = new DocumentParser(new JsoupDocumentLoader());
 
     Map<ArtifactGroup, List<ArtifactId>> boms;

@@ -22,25 +22,40 @@ This plugin tries to do just that: given the project pom to lookup possible BOM 
 
 ## Goals
 
-`search ` runs a search for available BOM artifacts for current project.
+`search` runs a search for available BOM artifacts for current project.
+
+`enforce` fails the build if it BOM artifacts available for current project but not used.
 
 ### Configuration
 
-Parameter | Type | Description | Default
-----------|------|---------|------------
-bomsearch.minOccurrence | int | Minimal number of dependencies that share a group to search for BOM for that group | 2
-bomsearch.mavenRepoUrl | URL | Maven repository URL to search artifact | https://repo.maven.apache.org/maven2
-bomsearch.incremental | boolean | Whether to store results for a re-use | true
+Name | Type | Description 
+----------|------|---------
+`<minOccurrence>` | int | Minimal number of dependencies that share a group to search for BOM for that group. <br/>**User property**: `bomsearch.minOccurrence`<br/>**Default value**: `2`
+`<mavenRepoUrl>` | URL | Maven repository URL to search artifact. <br/>**User property**: `bomsearch.mavenRepoUrl`<br/>**Default value**: `https://repo.maven.apache.org/maven2`
+`<incremental>` | boolean | Whether to use previously stored results. <br/>**User property**: `bomsearch.incremental` <br/>**Default value**: `true`
+`<lenient>` | boolean | If set to `false`, `enforce` goal will not fail the build, but still logs warnings. <br/>**User property**: `bomsearch.lenient` <br/>**Default value**: `false`
+`<skip>` | boolean | Disable plugin <br/>**User property**: `bomsearch.skip` <br/>**Default value**: `false`
 
 ### Usage
 
+#### Search goal
 Typical use of the plugin would look as follows:
 ```
 $ mvn com.github.olegzzz:bom-search-maven-plugin:search
 ```
 let's say a project has multiple dropwizard dependencies, then looking into the log one can pick suggested BOM file (`io.dropwizard:dropwizard-bom` in this case):
 ```
-[INFO] --- bom-search-maven-plugin:1.2:search (default-cli) ---
+[INFO] --- bom-search-maven-plugin:search (default-cli) ---
 [INFO] Following BOMs found for module: [io.dropwizard:dropwizard-bom]
 ```
 
+#### Enforce goal
+
+Assume a project could have used a BOM from Dropwizard:
+```
+$ mvn com.github.olegzzz:bom-search-maven-plugin:enforce
+
+[INFO] --- bom-search-maven-plugin:search (default-cli) ---
+[INFO] Following BOMs found for module: [io.dropwizard:dropwizard-bom]
+[WARNING] There are following BOMs available but not used: [io.dropwizard:dropwizard-bom]
+```
