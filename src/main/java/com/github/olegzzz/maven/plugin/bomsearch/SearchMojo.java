@@ -4,7 +4,7 @@ import static java.util.stream.Collectors.toList;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,7 +67,7 @@ public class SearchMojo extends IncrementalSupportMojo {
 
     docParser = new DocumentParser(new JsoupDocumentLoader());
 
-    Map<ArtifactGroup, List<ArtifactId>> boms;
+    Collection<DependencyModel> boms;
     if (super.incremental) {
       if (isPomFilesChanged()) {
         getLog().info("Changes detected. Searching for available BOM dependencies.");
@@ -86,35 +86,23 @@ public class SearchMojo extends IncrementalSupportMojo {
     printResults(boms);
   }
 
-  private Map<ArtifactGroup, List<ArtifactId>> doSearch() {
+  private Collection<DependencyModel> doSearch() {
     Set<Dependency> bomDependencies = getProjectBoms(project);
-    List<ArtifactGroup> groups = selectGroups(project.getDependencies(), bomDependencies);
-    List<ArtifactGroup> dedupGroups = filterGroups(groups, minOccurrence);
+    List<String> groups = selectGroups(project.getDependencies(), bomDependencies);
+    List<String> dedupGroups = filterGroups(groups, minOccurrence);
     return searchForBoms(dedupGroups);
   }
 
-  private void printResults(Map<ArtifactGroup, List<ArtifactId>> boms) {
+  private void printResults(Collection<DependencyModel> boms) {
     if (boms.isEmpty()) {
       getLog().info("No suitable BOMs found.");
     } else {
-      getLog().info(String.format("Following BOMs found for module: %s.", flatten(boms)));
+      getLog().info(String.format("Following BOMs found for module: %s.", boms));
     }
   }
 
-  protected List<String> flatten(Map<ArtifactGroup, List<ArtifactId>> boms) {
-    return boms
-        .entrySet()
-        .stream()
-        .map(e -> e.getValue()
-            .stream()
-            .map(artifactId -> String.format("%s:%s", e.getKey(), artifactId))
-            .collect(Collectors.toList()))
-        .flatMap(Collection::stream)
-        .collect(toList());
-  }
-
   @VisibleForTesting
-  List<ArtifactGroup> filterGroups(Collection<ArtifactGroup> groups, int minOccurrence) {
+  protected List<String> filterGroups(Collection<String> groups, int minOccurrence) {
     return CollectionUtils
         .getCardinalityMap(groups)
         .entrySet()
@@ -129,14 +117,17 @@ public class SearchMojo extends IncrementalSupportMojo {
   }
 
   @VisibleForTesting
-  Map<ArtifactGroup, List<ArtifactId>> searchForBoms(List<ArtifactGroup> groups) {
-    Map<ArtifactGroup, List<ArtifactId>> res = new HashMap<>();
+  protected Collection<DependencyModel> searchForBoms(List<String> groups) {
+    Collection<DependencyModel> res = new LinkedList<>();
 
-    for (ArtifactGroup group : groups) {
-      String uri = groupUri(group.getValue());
-      List<ArtifactId> bomsArtifactIds = docParser.parseArtifactsIds(uri);
-      if (!bomsArtifactIds.isEmpty()) {
-        res.put(group, bomsArtifactIds);
+    for (String group : groups) {
+      String uri = groupUri(group);
+      List<String> artifactIds = docParser.parseArtifactsIds(uri);
+      if (!artifactIds.isEmpty()) {
+        res.add(new DependencyModel(group, artifactIds.get(0)));
+        if (artifactIds.size() > 1) {
+          getLog().warn(String.format("More than one BOM artifact found four group %s.", group));
+        }
       }
     }
     return res;
@@ -148,7 +139,7 @@ public class SearchMojo extends IncrementalSupportMojo {
   }
 
   @VisibleForTesting
-  List<ArtifactGroup> selectGroups(List<Dependency> deps, Set<Dependency> excludes) {
+  List<String> selectGroups(List<Dependency> deps, Set<Dependency> excludes) {
     Set<String> groupIds =
         excludes.stream().map(Dependency::getGroupId).collect(Collectors.toSet());
     return deps
@@ -157,7 +148,6 @@ public class SearchMojo extends IncrementalSupportMojo {
         .filter(SCOPE_IMPORT.negate())
         .filter(d -> !groupIds.contains(d.getGroupId()))
         .map(Dependency::getGroupId)
-        .map(ArtifactGroup::new)
         .collect(toList());
   }
 

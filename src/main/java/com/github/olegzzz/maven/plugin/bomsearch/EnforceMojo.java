@@ -1,8 +1,7 @@
 package com.github.olegzzz.maven.plugin.bomsearch;
 
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -29,11 +28,10 @@ public class EnforceMojo extends SearchMojo {
       return;
     }
 
-    Map<ArtifactGroup, List<ArtifactId>> boms = Optional.ofNullable(readBomList()).orElse(
-        Collections.emptyMap());
+    Collection<DependencyModel> boms = Optional.ofNullable(readBomList())
+        .orElse(Collections.emptyList());
     if (!boms.isEmpty()) {
-      final String msg =
-          String.format("There are following BOMs available but not used: %s", flatten(boms));
+      final String msg = String.format("Following BOMs available but not used: %s", boms);
       getLog().warn(msg);
       if (!lenient) {
         throw new MojoExecutionException(msg);

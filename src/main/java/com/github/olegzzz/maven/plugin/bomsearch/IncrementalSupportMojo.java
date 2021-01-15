@@ -1,15 +1,11 @@
 package com.github.olegzzz.maven.plugin.bomsearch;
 
-import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
@@ -24,8 +20,6 @@ import org.apache.maven.shared.utils.io.FileUtils;
 public class IncrementalSupportMojo extends AbstractMojo {
 
   public static final String BOM_LIST_FILENAME = "bomList.lst";
-  public static final String ARTIFACT_DELIMITER = ",";
-  public static final String GROUP_DELIMITER = ":";
 
   @SuppressWarnings("unused")
   @Parameter(defaultValue = "${project}", readonly = true, required = true)
@@ -50,7 +44,7 @@ public class IncrementalSupportMojo extends AbstractMojo {
   private MavenSession session;
 
   @Parameter(defaultValue = "true", property = "bomsearch.incremental")
-  protected boolean incremental = true;
+  protected boolean incremental;
 
   private IncrementalBuildHelper incBuildHelper;
 
@@ -115,42 +109,27 @@ public class IncrementalSupportMojo extends AbstractMojo {
     }
   }
 
-  // TODO: replace with SearchMojo.flatten
-  protected void writeBomList(Map<ArtifactGroup, List<ArtifactId>> boms) {
+  protected void writeBomList(Collection<DependencyModel> boms) {
+
     StringBuilder sb = new StringBuilder();
-    for (Map.Entry<ArtifactGroup, List<ArtifactId>> entry : boms.entrySet()) {
-      sb.append(entry.getKey())
-          .append(GROUP_DELIMITER)
-          .append(entry.getValue().stream().map(ArtifactId::getValue)
-              .collect(joining(ARTIFACT_DELIMITER)))
-          .append(System.lineSeparator());
+    for (DependencyModel d : boms) {
+      sb.append(d.toString()).append(System.lineSeparator());
     }
+
     writeStatusFile(BOM_LIST_FILENAME, sb.toString());
   }
 
   @Nullable
-  protected Map<ArtifactGroup, List<ArtifactId>> readBomList() {
+  protected Collection<DependencyModel> readBomList() {
     List<String> list = readStatusFile(BOM_LIST_FILENAME);
     if (list == null) {
       return null;
     }
 
-    Map<ArtifactGroup, List<ArtifactId>> res = new HashMap<>();
-    for (String coordinates : list) {
-      String[] groupArtifactList = coordinates.split(GROUP_DELIMITER);
-      String groupId = groupArtifactList[0];
-      final ArtifactGroup artifactGroup = new ArtifactGroup(groupId);
-      res.putIfAbsent(artifactGroup, new LinkedList<>());
-
-      List<ArtifactId> artifacts = stream(groupArtifactList[1].split(ARTIFACT_DELIMITER))
-          .map(ArtifactId::new)
-          .collect(Collectors.toList());
-      res.computeIfPresent(artifactGroup, (key, values) -> {
-        values.addAll(artifacts);
-        return values;
-      });
-    }
-    return res;
+    return list
+        .stream()
+        .map(DependencyModel::fromString)
+        .collect(toList());
   }
 
   @Override

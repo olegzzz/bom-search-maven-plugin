@@ -206,7 +206,7 @@ public class SearchMojoTestCase extends AbstractMojoTestCase {
   private void setupDocParser(SearchMojo mojo, String artifactId) throws IllegalAccessException {
     DocumentParser docParserMock = mock(DocumentParser.class);
     when(docParserMock.parseArtifactsIds(anyString()))
-        .thenReturn(Collections.singletonList(new ArtifactId(artifactId)));
+        .thenReturn(Collections.singletonList(artifactId));
     setVariableValueToObject(mojo, "docParser", docParserMock);
   }
 
