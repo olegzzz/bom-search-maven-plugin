@@ -3,7 +3,7 @@ package com.github.olegzzz.maven.plugin.bomsearch;
 import java.util.Objects;
 
 /**
- * Lightweight (comparing to {@link org.apache.maven.model.Model}) model.
+ * Lightweight (compared to {@link org.apache.maven.model.Model}) model.
  */
 public class DependencyModel {
 
