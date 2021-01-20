@@ -57,5 +57,5 @@ $ mvn com.github.olegzzz:bom-search-maven-plugin:enforce
 
 [INFO] --- bom-search-maven-plugin:enforce (default-cli) ---
 [INFO] Following BOMs found for module: [io.dropwizard:dropwizard-bom]
-[WARNING] There are following BOMs available but not used: [io.dropwizard:dropwizard-bom]
+[WARNING] Following BOMs available but not used: [io.dropwizard:dropwizard-bom]
 ```

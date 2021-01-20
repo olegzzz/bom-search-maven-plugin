@@ -215,10 +215,10 @@ public class SearchMojoTest {
       );
       project.setDependencies(deps);
 
-      List<ArtifactGroup> selected = mojo.selectGroups(deps, Collections.emptySet());
+      List<String> selected = mojo.selectGroups(deps, Collections.emptySet());
 
       assertEquals(1, selected.size());
-      assertTrue(selected.contains(new ArtifactGroup("org.foobar")));
+      assertTrue(selected.contains("org.foobar"));
 
     }
 
@@ -236,10 +236,10 @@ public class SearchMojoTest {
       Dependency dep1 = new Dependency();
       dep1.setGroupId("org.baz");
 
-      List<ArtifactGroup> selected =
+      List<String> selected =
           mojo.selectGroups(deps, new HashSet<>(Collections.singletonList(dep1)));
       assertEquals(1, selected.size());
-      assertTrue(selected.contains(new ArtifactGroup("org.foobar")));
+      assertTrue(selected.contains("org.foobar"));
     }
 
   }
@@ -248,11 +248,11 @@ public class SearchMojoTest {
 
     @Test
     public void returns_map_with_cardinality_greater_than_or_equal_to_given() {
-      ArtifactGroup group1 = new ArtifactGroup("org.group1");
-      ArtifactGroup group2 = new ArtifactGroup("org.group2");
+      String group1 = "org.group1";
+      String group2 = "org.group2";
 
-      Collection<ArtifactGroup> groups = asList(group1, group1, group1, group2);
-      List<ArtifactGroup> filtered = mojo.filterGroups(groups, 3);
+      Collection<String> groups = asList(group1, group1, group1, group2);
+      List<String> filtered = mojo.filterGroups(groups, 3);
       assertEquals(1, filtered.size());
       assertTrue(filtered.contains(group1));
     }

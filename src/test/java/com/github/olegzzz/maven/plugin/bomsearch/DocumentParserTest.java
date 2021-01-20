@@ -45,9 +45,9 @@ public class DocumentParserTest {
       when(doc.select(anyString())).thenReturn(elements);
 
       when(loader.loadGroupByUri(anyString())).thenReturn(doc);
-      List<ArtifactId> boms = parser.parseArtifactsIds("foo/bar");
+      List<String> boms = parser.parseArtifactsIds("foo/bar");
 
-      assertTrue(boms.contains(new ArtifactId("some-bom")));
+      assertTrue(boms.contains("some-bom"));
 
     }
 
@@ -59,7 +59,7 @@ public class DocumentParserTest {
       Document doc = mock(Document.class);
       when(doc.select(anyString())).thenReturn(elements);
 
-      List<ArtifactId> boms = parser.parseArtifactsIds("foo/bar");
+      List<String> boms = parser.parseArtifactsIds("foo/bar");
 
       assertTrue(boms.isEmpty());
     }

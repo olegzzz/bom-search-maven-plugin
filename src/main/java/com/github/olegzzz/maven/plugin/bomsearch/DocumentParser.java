@@ -15,12 +15,12 @@ public class DocumentParser {
   }
 
   /**
-   * Converts a {@link Document} into a list of {@link ArtifactId}.
+   * Converts a {@link Document} into a list of artifact ids.
    *
    * @param uri full uri to a group on a maven repo, e.g. `https://repo.maven.apache.org/maven2/org/springframework/`
    * @return list of artifactIds of null
    */
-  public List<ArtifactId> parseArtifactsIds(String uri) {
+  public List<String> parseArtifactsIds(String uri) {
     final Document document = loader.loadGroupByUri(uri);
     if (document != null) {
       return document
@@ -29,7 +29,6 @@ public class DocumentParser {
           .filter(SearchMojo.TITLE_BOM)
           .map(SearchMojo.GET_HREF)
           .map(SearchMojo.REMOVE_SLASH)
-          .map(ArtifactId::new)
           .collect(toList());
     } else {
       return Collections.emptyList();
