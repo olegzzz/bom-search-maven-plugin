@@ -20,13 +20,15 @@ group or if BOM available for those groups.
 
 This plugin tries to do just that: given the project pom to lookup possible BOM artifacts for a group of dependencies.
 
-## Goals
+## Configuration
+
+### Goals
 
 `search` runs a search for available BOM artifacts for current project.
 
 `enforce` fails the build if it finds BOM artifacts available for current project but not used.
 
-### Configuration
+### Settings
 
 Name | Type | Description 
 ----------|------|---------
@@ -36,7 +38,7 @@ Name | Type | Description
 `<lenient>` | boolean | If set to `true`, `enforce` goal will not fail the build, but still logs warnings. <br/>**User property**: `bomsearch.lenient` <br/>**Default value**: `false`
 `<skip>` | boolean | Disable plugin. <br/>**User property**: `bomsearch.skip` <br/>**Default value**: `false`
 
-### Usage
+## Usage
 
 Add to `<build>` section of the pom-file:
 
