@@ -31,10 +31,10 @@ This plugin tries to do just that: given the project pom to lookup possible BOM 
 Name | Type | Description 
 ----------|------|---------
 `<minOccurrence>` | int | Minimal number of dependencies that share a group to search for BOM for that group. <br/>**User property**: `bomsearch.minOccurrence`<br/>**Default value**: `2`
-`<mavenRepoUrl>` | URL | Maven repository URL to search artifact. <br/>**User property**: `bomsearch.mavenRepoUrl`<br/>**Default value**: `https://repo.maven.apache.org/maven2`
-`<incremental>` | boolean | Whether to use previously stored results. <br/>**User property**: `bomsearch.incremental` <br/>**Default value**: `true`
-`<lenient>` | boolean | If set to `false`, `enforce` goal will not fail the build, but still logs warnings. <br/>**User property**: `bomsearch.lenient` <br/>**Default value**: `false`
-`<skip>` | boolean | Disable plugin <br/>**User property**: `bomsearch.skip` <br/>**Default value**: `false`
+`<mavenRepoUrl>` | URL | Maven repository URL. <br/>**User property**: `bomsearch.mavenRepoUrl`<br/>**Default value**: `https://repo.maven.apache.org/maven2`
+`<incremental>` | boolean | Use results from previous run if possible. <br/>**User property**: `bomsearch.incremental` <br/>**Default value**: `true`
+`<lenient>` | boolean | If set to `true`, `enforce` goal will not fail the build, but still logs warnings. <br/>**User property**: `bomsearch.lenient` <br/>**Default value**: `false`
+`<skip>` | boolean | Disable plugin. <br/>**User property**: `bomsearch.skip` <br/>**Default value**: `false`
 
 ### Usage
 
