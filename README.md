@@ -60,7 +60,7 @@ and run `mvn verify`
 Build log will contain warnings with suggested BOM dependencies to include into the project. Let's say a project has multiple dropwizard dependencies, then looking into the log one can pick suggested BOM file (`io.dropwizard:dropwizard-bom` in this case):
 
 ```
-[INFO] --- bom-search-maven-plugin:enforce (default-cli) ---
+[INFO] --- bom-search-maven-plugin:1.5:enforce (default-cli) ---
 [INFO] Following BOMs found for module: [io.dropwizard:dropwizard-bom]
 [WARNING] Following BOMs available but not used: [io.dropwizard:dropwizard-bom]
 ```
